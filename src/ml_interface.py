@@ -85,7 +85,8 @@ class Model:
             print("OTHE INPUT",  other)
             iter = 500 if ("iter_1" not in other) else other["iter_1"] 
             ws = False if ("warm_start" not in other) else other["warm_start"] 
-            return MyNet(MyModule, max_epochs = iter, warm_start=ws)
+            #return MyNet(MyModule, max_epochs = iter, warm_start=ws)
+            return MLPClassifier( max_iter= iter, warm_start=ws)
         elif method == self.NB_C:
             return GaussianNB()
         elif method == self.RF_C:

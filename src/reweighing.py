@@ -35,11 +35,11 @@ class ReweighingModel(Model):
         self.transformer = self._get_transformer(X)
         
         sample_weight = self.Reweighing(X, y, sensitive_attributes)
-        X1 = {'data': self.transformer.fit_transform(X)}
+        #X1 = {'data': self.transformer.fit_transform(X)}
         # add sample_weight to the X dict. All ones so should get similar result as above
-        X1['sample_weight'] = sample_weight
+        #X1['sample_weight'] = sample_weight
 
-        self._model.fit(X1, y)
+        self._model.fit(self.transformer.fit_transform(X), y, sample_weight)
 
 
     def predict(self, X: pd.DataFrame, other: Dict[str, Any] = {}) -> np.array:

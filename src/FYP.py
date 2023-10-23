@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 from typing import List, Dict, Any
 from sklearn.base import clone
+import random
 
 
 from sklearn.neural_network import MLPClassifier
@@ -43,23 +44,31 @@ class FypModel(Model):
         # train a general model
         # for each subgroup train another model
 
+        SPEED_BOOST_A_BIT = 5
+
         self._method_bias = method_bias
         self._sensitive = sensitive_attributes
+        attr = sensitive_attributes[0]
+        self.calc_counts(X,y,attr)
 
         model_1 = self._get_model(method, other | {"warm_start":True})
-        model_1.fit(X, y)
-        print("FIRST FIT FINE")
 
-        model_1.set_params(max_epochs = other["iter_2"]) # !!!
+      
+        model_1.set_params(max_iter = SPEED_BOOST_A_BIT) # !!!
+
+        for _ in range(other["iter_1"]//SPEED_BOOST_A_BIT):
+            model_1.fit(*self.silly_reweighing(X,y))
 
         model_0 = clone(model_1)
 
 
-        mask = (X[self._sensitive[0]] == 1)
+        for _ in range(other["iter_2"]//SPEED_BOOST_A_BIT):
+            
+            X_rw, y_rw = self.silly_reweighing(X,y)
+            mask = (X_rw[attr] == 1)
 
-        model_0.fit(X[~mask],y[~mask])
-        model_1.fit(X[mask], y[mask])
-
+            model_0.fit(X_rw[~mask],y_rw[~mask])
+            model_1.fit(X_rw[mask],y_rw[mask])
 
         self._models = [model_0, model_1]
              
@@ -85,9 +94,53 @@ class FypModel(Model):
         y[mask] = y_1[mask]
         return y
         
-
-# add reweighing betweeen positive and negative labels
-
-# WHAT IF I MIX REWEIGHING and my thing
-
+    def silly_reweighing(self, X, y):
+        idxs = list(random.sample(self.mask_11, self.c_11))
+        idxs +=  list(random.sample(self.mask_01, self.c_01))
+        idxs +=  list(random.sample(self.mask_00, self.c_00))
+        idxs +=  list(random.sample(self.mask_10, self.c_10))
+        return X.iloc[idxs], y[idxs]
     
+    def calc_counts(self, X, y, attr):
+        X_p = X.copy()
+        X_p['y'] = y
+        
+        self.mask_11 = list(np.where((X_p[attr]==1) & (X_p['y'] == 1))[0])
+        self.mask_10 = list(np.where((X_p[attr]==1) & (X_p['y'] == 0))[0])
+        self.mask_01 = list(np.where((X_p[attr]==0) & (X_p['y'] == 1))[0])
+        self.mask_00 = list(np.where((X_p[attr]==0) & (X_p['y'] == 0))[0])
+
+        self.c_11 = len(self.mask_11)
+        self.c_00 = len(self.mask_00)
+        self.c_10 = len(self.mask_10)
+        self.c_01 = len(self.mask_01)
+
+        ratio = (self.c_01 + self.c_11) / (self.c_00 + self.c_10)
+
+        ratio_0 = (self.c_01) / (self.c_00)
+        ratio_1 = (self.c_11) / (self.c_10)
+
+        if ratio_0 > ratio:
+            self.c_01 = int(self.c_00*ratio)
+        else:
+            self.c_00 = int(self.c_01/ratio)
+
+        if ratio_1 > ratio:
+            self.c_11 = int(self.c_10*ratio)
+        else:
+            self.c_10 = int(self.c_11/ratio)
+
+            
+
+        print("counts 01 00 11 10", self.c_01,self.c00,self.c_11,self.c_10 )
+        #print( self.count_0, self.count_1)
+
+        
+
+
+        
+
+# concl: the reweighing equivalent kinda works but becomes useless cause you might as well just apply out of the box rw. it does improve some disparity between groups tho when works as intended
+
+# I NEED A CONCRETE COMPARISON WITH REWEIGHING in the nn
+# next: add a loss bias mitigation into play.
