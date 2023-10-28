@@ -20,6 +20,13 @@ from skorch import NeuralNetClassifier
 from torch import nn, float32
 import torch.nn.functional as F
 
+from sklearn.preprocessing import LabelEncoder
+from sklearn.model_selection import train_test_split
+from keras.models import Sequential
+from keras.layers import Activation
+from keras.optimizers import SGD
+from keras.layers import Dense
+
 
 
 class MyModule(nn.Module):
@@ -63,7 +70,8 @@ class Model:
     RF_C = "RandomForestClassifier"
     KN_C = "KNearestNeighbours"
     SV_C = "SupportVectorClassifier"
-    NN_C = "MLPClassifier"
+    NN_C = "nn keras"
+    NN_old = "MLPClassifier"
     NB_C = "NaiveBayes"
 
     def __init__(self, other: Dict[str, Any] = {}) -> None:
@@ -83,9 +91,23 @@ class Model:
             return KNeighborsClassifier(k)
         elif method == self.NN_C:
             print("OTHE INPUT",  other)
+            model = Sequential()
+            model.add(Dense(45, input_dim=other["input_dim"] ,
+                activation="relu"))
+            model.add(Dense(45, activation="relu", kernel_initializer="uniform"))
+            model.add(Dense(30, activation="relu", kernel_initializer="uniform"))
+            model.add(Dense(15, activation="relu", kernel_initializer="uniform"))
+            model.add(Dense(1))
+            model.add(Activation("sigmoid"))
+            sgd = SGD(learning_rate=0.001, clipnorm=1)
+            model.compile(loss="binary_crossentropy", optimizer=sgd,
+                metrics=["accuracy"])
+            #return MyNet(MyModule, max_epochs = iter, warm_start=ws)
+            return model
+        elif method == self.NN_old:
+            print("OTHE INPUT",  other)
             iter = 500 if ("iter_1" not in other) else other["iter_1"] 
             ws = False if ("warm_start" not in other) else other["warm_start"] 
-            #return MyNet(MyModule, max_epochs = iter, warm_start=ws)
             return MLPClassifier( max_iter= iter, warm_start=ws)
         elif method == self.NB_C:
             return GaussianNB()
@@ -157,7 +179,7 @@ class BaseModel(Model):
         self._model = None
 
     def train(self, X: pd.DataFrame, y: np.array, sensitive_atributes: List[str], method, method_bias = None, other: Dict[str, Any] = {}):
-        self._model = self._get_model(method, other)  
+        self._model = self._get_model(method, other | {"input_dim":X.shape[1]})  
         self.transformer = self._get_transformer(X)   
         if self._use_transformer:     
             self._model.fit(self.transformer.fit_transform(X), y)
@@ -166,7 +188,11 @@ class BaseModel(Model):
 
     def predict(self, X: pd.DataFrame, other: Dict[str, Any] = {}) -> np.array:
         if self._use_transformer:  
-            return self._model.predict(self.transformer.transform(X))
+            y = self._model.predict(self.transformer.transform(X))
         else:
-            return self._model.predict(X)
+            y = self._model.predict(X)
+
+        y[y>=0.5] = 1
+        y[y<=0.5] = 0
+        return y
     

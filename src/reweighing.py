@@ -31,7 +31,7 @@ class ReweighingModel(Model):
         :type other: Dict[str, Any], optional
         """
         print("rw other,", other)
-        self._model = self._get_model(method, other)
+        self._model = self._get_model(method, other | {"input_dim":X.shape[1]})
         self.transformer = self._get_transformer(X)
         
         sample_weight = self.Reweighing(X, y, sensitive_attributes)
@@ -39,7 +39,10 @@ class ReweighingModel(Model):
         # add sample_weight to the X dict. All ones so should get similar result as above
         #X1['sample_weight'] = sample_weight
 
-        self._model.fit(self.transformer.fit_transform(X), y, sample_weight)
+        if method != Model.NN_C:
+            self._model.fit(self.transformer.fit_transform(X), y, sample_weight=sample_weight)
+        else:
+            self._model.fit(self.transformer.fit_transform(X), y, epochs=other["iter_1"], sample_weight=sample_weight)
 
 
     def predict(self, X: pd.DataFrame, other: Dict[str, Any] = {}) -> np.array:
@@ -53,7 +56,10 @@ class ReweighingModel(Model):
         :return: predictions for each row of X
         :rtype: np.array
         """
-        return self._model.predict(self.transformer.transform(X))
+        y = self._model.predict(self.transformer.transform(X))
+        y[y>0.5] = 1
+        y[y<=0.5] = 0
+        return y
 
     def Reweighing(self, X, y, A):
         groups_class = {}

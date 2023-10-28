@@ -29,13 +29,16 @@ class FairBalanceModel(Model):
         :param other: dictionary of any other params that we might wish to pass?, defaults to {}
         :type other: Dict[str, Any], optional
         """
-        self._model = self._get_model(method)
+        self._model = self._get_model(method, other | {"input_dim":X.shape[1]})
         self.transformer = self._get_transformer(X)
         
-        sample_weight = self.FairBalance(X, y, sensitive_attributes)
-        self._model.fit(self.transformer.fit_transform(X), y, sample_weight)
-
-
+        sample_weight = self.FairBalance(X, y, sensitive_attributes)   
+        
+        if method != Model.NN_C:
+            self._model.fit(self.transformer.fit_transform(X), y, sample_weight=sample_weight)
+        else:
+            self._model.fit(self.transformer.fit_transform(X), y, epochs=other["iter_1"], sample_weight=sample_weight)
+            
     def predict(self, X: pd.DataFrame, other: Dict[str, Any] = {}) -> np.array:
         """ Uses the previously trained ML model
 
@@ -47,7 +50,10 @@ class FairBalanceModel(Model):
         :return: predictions for each row of X
         :rtype: np.array
         """
-        return self._model.predict(self.transformer.transform(X))
+        y = self._model.predict(self.transformer.transform(X))
+        y[y>0.5] = 1
+        y[y<=0.5] = 0
+        return y
 
     def FairBalance(self, X, y, A):
         groups_class = {}

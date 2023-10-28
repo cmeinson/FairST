@@ -2,14 +2,13 @@ from .ml_interface import Model
 import pandas as pd
 import numpy as np
 from typing import List, Dict, Any
-from sklearn.base import clone
 import random
+import copy
+import keras
 
+from collections import Counter
 
-from sklearn.neural_network import MLPClassifier
-
-
-
+SPEED_BOOST_A_BIT = 5
 
 class FypModel(Model):
     def __init__(self, other: Dict[str, Any] = {}) -> None:
@@ -18,7 +17,7 @@ class FypModel(Model):
         :param other: any hyper params we need to pass, defaults to {}
         :type other: Dict[str, Any], optional
         """
-        self._models = []
+        self._models = [None, None]
         self._sensitive = None
         self._method_bias = None
 
@@ -41,37 +40,28 @@ class FypModel(Model):
         if method != Model.NN_C:
             raise RuntimeError("attempted to run FYP with method:", method)
         
+        self.transformer = self._get_transformer(X)
+        self.transformer.fit_transform(X)
+        
         # train a general model
         # for each subgroup train another model
-
-        SPEED_BOOST_A_BIT = 5
 
         self._method_bias = method_bias
         self._sensitive = sensitive_attributes
         attr = sensitive_attributes[0]
         self.calc_counts(X,y,attr)
 
-        model_1 = self._get_model(method, other | {"warm_start":True})
+        self._models[1] = self._get_model(method, other | {"warm_start":True, "input_dim":X.shape[1]})
 
-      
-        model_1.set_params(max_iter = SPEED_BOOST_A_BIT) # !!!
+        self.train1(X, y ,other)
 
-        for _ in range(other["iter_1"]//SPEED_BOOST_A_BIT):
-            model_1.fit(*self.silly_reweighing(X,y))
+        self._models[0] = self._get_model(method, other | {"warm_start":True, "input_dim":X.shape[1]})
+        self._models[0].set_weights(copy.deepcopy(self._models[1].get_weights()))
 
-        model_0 = clone(model_1)
+        if other["iter_2"]>0:
+            self.train2(X, y ,other, attr)
 
 
-        for _ in range(other["iter_2"]//SPEED_BOOST_A_BIT):
-            
-            X_rw, y_rw = self.silly_reweighing(X,y)
-            mask = (X_rw[attr] == 1)
-
-            model_0.fit(X_rw[~mask],y_rw[~mask])
-            model_1.fit(X_rw[mask],y_rw[mask])
-
-        self._models = [model_0, model_1]
-             
 
     def predict(self, X: pd.DataFrame, other: Dict[str, Any] = {}) -> np.array:
         """ Uses the previously trained ML model
@@ -86,12 +76,15 @@ class FypModel(Model):
         """
         # choose the right model to predict
 
-        y = self._models[0].predict(X)
-        y_1 = self._models[1].predict(X)
+        y = self._models[0].predict(self.transformer.transform(X))
+        y_1 = self._models[1].predict(self.transformer.transform(X))
 
         mask = (X[self._sensitive[0]] == 1)
 
         y[mask] = y_1[mask]
+
+        y[y>0.5] = 1
+        y[y<=0.5] = 0
         return y
         
     def silly_reweighing(self, X, y):
@@ -99,6 +92,7 @@ class FypModel(Model):
         idxs +=  list(random.sample(self.mask_01, self.c_01))
         idxs +=  list(random.sample(self.mask_00, self.c_00))
         idxs +=  list(random.sample(self.mask_10, self.c_10))
+        #print("DATA TYPES OF X AND Y", type(X[idxs]), type(y[idxs]) )
         return X.iloc[idxs], y[idxs]
     
     def calc_counts(self, X, y, attr):
@@ -132,12 +126,58 @@ class FypModel(Model):
 
             
 
-        print("counts 01 00 11 10", self.c_01,self.c00,self.c_11,self.c_10 )
+        print("counts 01 00 11 10", self.c_01,self.c_00,self.c_11,self.c_10 )
         #print( self.count_0, self.count_1)
 
         
+    def train1(self, X, y, other):
+        if not ("RW" in other and other["RW"]):
+            for _ in range(other["iter_1"]//SPEED_BOOST_A_BIT):
+                X_p, y_p = self.silly_reweighing(X,y)
+                self._models[1].fit(self.transformer.transform(X_p), y_p, epochs=SPEED_BOOST_A_BIT)
+        else:
+            sample_weight = self.Reweighing(X, y, self._sensitive)
+            self._models[1].fit(self.transformer.transform(X),y, epochs=other["iter_1"], sample_weight=sample_weight)
+
+    def train2(self,X,y,other, attr):
+        if "RW" not in other or not other["RW"]:
+            for _ in range(other["iter_2"]//SPEED_BOOST_A_BIT):
+                
+                X_rw, y_rw = self.silly_reweighing(X,y)
+                mask = (X_rw[attr] == 1)
+
+                self._models[0].fit(self.transformer.transform(X_rw[~mask]),y_rw[~mask], epochs=SPEED_BOOST_A_BIT)
+                self._models[1].fit(self.transformer.transform(X_rw[mask]),y_rw[mask], epochs=SPEED_BOOST_A_BIT)
+        else:
+            sample_weight = self.Reweighing(X, y, self._sensitive)
+            mask = (X[attr] == 1)
+            self._models[0].fit(self.transformer.transform(X[~mask]),y[~mask], epochs=other["iter_2"], sample_weight=sample_weight[~mask])
+            self._models[1].fit(self.transformer.transform(X[mask]),y[mask], epochs=other["iter_2"], sample_weight=sample_weight[mask])
 
 
+    def Reweighing(self, X, y, A):
+        groups_class = {}
+        group_weight = {}
+        X.reset_index(drop=True, inplace=True)
+
+        for i in range(len(y)):
+            key_class = tuple([X[a][i] for a in A]+[y[i]])
+            key = key_class[:-1]
+            if key not in group_weight:
+                group_weight[key]=0
+            group_weight[key]+=1
+            if key_class not in groups_class:
+                groups_class[key_class]=[]
+            groups_class[key_class].append(i)
+        class_weight = Counter(y)
+        sample_weight = np.array([1.0]*len(y))
+        for key in groups_class:
+            weight = class_weight[key[-1]]*group_weight[key[:-1]]/len(groups_class[key])
+            for i in groups_class[key]:
+                sample_weight[i] = weight
+        # Rescale the total weights to len(y)
+        sample_weight = sample_weight * len(y) / sum(sample_weight)
+        return sample_weight
         
 
 # concl: the reweighing equivalent kinda works but becomes useless cause you might as well just apply out of the box rw. it does improve some disparity between groups tho when works as intended
