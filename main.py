@@ -3,9 +3,9 @@ from src import *
 
 # Just an example for now
 
-n_repetitions = 5
+n_repetitions =5
 same_data_split = False
-results_filename = "rw_all_tensor_sex_same_data"
+results_filename = "fixed_metrics"
 other = {Tester.OPT_SAVE_INTERMID: True}
 
 #other_fb = other.copy()
@@ -13,9 +13,15 @@ other = {Tester.OPT_SAVE_INTERMID: True}
 
 datasets =  [  Tester.ADULT_D]#, Tester.GERMAN_D, Tester.ADULT_D,], Tester.COMPAS_D, 
 
-base_it = 70
+base_it = 60
 def other_it(it_2, RW = False):
     return {"iter_1": base_it - it_2, "iter_2": int(it_2*1.2), "RW": RW}
+
+mls = [
+    (Tester.FYP_VAE, Model.LG_R, None, None, other),
+    (Tester.BASE_ML, Model.LG_R, None, None, other | {"iter_1": base_it}),   
+    (Tester.FAIRMASK, Model.LG_R, Model.DT_R, None, other | {"iter_1": base_it}),
+    (Tester.REWEIGHING, Model.LG_R, None, None, other | {"iter_1": base_it}),]
 
 mls = [
     
@@ -46,13 +52,15 @@ mls = [
 ]
 
 
+
+
 metric_names = [Metrics.ACC, Metrics.PRE, Metrics.REC, Metrics.AOD, Metrics.EOD, Metrics.SPD, Metrics.DI, Metrics.SF]
 results_file = os.path.join("results",results_filename +".csv")
 
 
 if __name__ == "__main__":
     tester = Tester(results_file)
-    for i in range(3):
+    for i in range(1):
         for dataset in datasets:
             for bias_mit, method, method2, pre, oth in mls:
                 print("RUNIN",bias_mit,oth )

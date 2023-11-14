@@ -3,6 +3,7 @@ from typing import List
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
+from sklearn import preprocessing
 
 """
 FairBalance Adult Data columns: age, workclass, fnlwgt, education, education-num, marital-status, occupation, relationship, 
@@ -14,7 +15,7 @@ FairMask Adult Data columns: age, education-num, race, sex, capital-gain, capita
 class AdultData(Data):
     # NB: if ur implementation of the class takes more than one file pls put it all into sub folder
 
-    def __init__(self, preprocessing:str = None, test_ratio = 0.2) -> None:
+    def __init__(self, preprocessing_type:str = None, test_ratio = 0.2) -> None:
         """
         - reads the according dataset from the data folder,
         - runs cleaning and preprocessing methods, chosen based on the preprocessing param
@@ -27,17 +28,32 @@ class AdultData(Data):
         self._test_ratio = test_ratio
         self.dataset_orig = pd.read_csv('data/adult.csv')
 
+        
+
         # Do default pre-processing from Preprocessing.ipynb
         self.pre_processing()
 
+
+
         # Split into input and output
-        self._X = pd.DataFrame(self.dataset_orig)
+        self._X = pd.DataFrame(self.dataset_orig)    
+
+
         self._y = self.dataset_orig['Probability'].to_numpy()
 
-        if preprocessing == "FairBalance":
+        if preprocessing_type == "FairBalance":
             self._X = self.fairbalance_columns(self._X)
-        else:
+        elif preprocessing_type == "FairMask":
             self._X = self.fairmask_columns(self._X)
+        else:
+            self._X = self.my_columns(self._X)
+
+        self._X = self.std_data_transform(self._X)
+
+        
+
+        
+        #self._X = (self._X-self._X.min())/(self._X.max()-self._X.min())
 
         # Create train-test split
         self.new_data_split()
@@ -65,6 +81,9 @@ class AdultData(Data):
 
     def fairbalance_columns(self, X):
         return X.drop(['fnlwgt', 'education', 'Probability'], axis=1)
+    
+    def my_columns(self, X):
+        return X.drop(['fnlwgt',  'Probability'], axis=1)
     
     def get_sensitive_column_names(self) -> List[str]:
         """

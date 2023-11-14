@@ -30,11 +30,22 @@ class CompasData(Data):
 
         if preprocessing == "FairBalance":
             self._X = self.fairbalance_columns(self._X)
-        else:
+        elif preprocessing == "FairMask":
             self._X = self.fairmask_columns(self._X)
+        else:
+            self._X = self.my_columns(self._X)
+
+        self._X = self.std_data_transform(self._X)
 
         # Create train-test split
-        self.new_data_split()                                                                                 
+        self.new_data_split()  
+
+    def my_columns(self, X):
+        return X[['sex', 'age', 'age_cat', 'race',
+                  'juv_fel_count', 'juv_misd_count', 'juv_other_count',
+                  'priors_count', 'c_charge_degree', 'c_charge_desc',
+                  "decile_score.1", "priors_count.1"]]
+                                                                                   
 
     def fairbalance_columns(self, X):
         return X[['sex', 'age', 'age_cat', 'race',

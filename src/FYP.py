@@ -51,11 +51,13 @@ class FypModel(Model):
         attr = sensitive_attributes[0]
         self.calc_counts(X,y,attr)
 
-        self._models[1] = self._get_model(method, other | {"warm_start":True, "input_dim":X.shape[1]})
+        columns = self.transformer.transform(X).shape[1]
+
+        self._models[1] = self._get_model(method, other | {"warm_start":True, "input_dim":columns})
 
         self.train1(X, y ,other)
 
-        self._models[0] = self._get_model(method, other | {"warm_start":True, "input_dim":X.shape[1]})
+        self._models[0] = self._get_model(method, other | {"warm_start":True, "input_dim":columns})
         self._models[0].set_weights(copy.deepcopy(self._models[1].get_weights()))
 
         if other["iter_2"]>0:
@@ -182,5 +184,19 @@ class FypModel(Model):
 
 # concl: the reweighing equivalent kinda works but becomes useless cause you might as well just apply out of the box rw. it does improve some disparity between groups tho when works as intended
 
-# I NEED A CONCRETE COMPARISON WITH REWEIGHING in the nn
-# next: add a loss bias mitigation into play.
+
+"""
+NB: note still only single attribute!
+i dont think it is a very viable option bc it is in processing and there are so many in processing methods which are far more reliable. 
+
+not reliable and really depends on the settings of the neural net. 
+
+bc of sample weight was unable to use the simple mpl  for easy trianing
+
+thoughts: in some cases has outperformed fairmask and even rw BUT lacks reliability!!!!! and some sort of rairness guarantees!!!
+
+then again in real life situations nns are more useful and are trainedwith attention so reliability bit increased.
+
+
+
+"""

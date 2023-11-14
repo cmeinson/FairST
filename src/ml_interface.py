@@ -169,6 +169,7 @@ class Model:
             ('OneHotEncoder', categorical_processor, categorical_columns),
             ('StandardScaler', numerical_processor, numerical_columns)])
         return transformer
+    
 
 
 class BaseModel(Model):

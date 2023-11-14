@@ -13,7 +13,10 @@ from typing import List, Dict, Any
 from .fairbalance import FairBalanceModel
 from .fairmask import FairMaskModel
 from .FYP import FypModel
+from .fyp_vae import FypMaskModel
 from .reweighing import ReweighingModel
+
+MAX_RETRY = 15
 
 class Tester:
     OPT_SAVE_INTERMID = "save intermediate results to file"
@@ -29,6 +32,7 @@ class Tester:
     FAIRBALANCE = "FairBalance Bias Mitigation"
     FAIRMASK = "FairMask Bias Mitigation"
     FYP = "idk i am trying fyp"
+    FYP_VAE = "FYP VAE"
     REWEIGHING = "Reweighing Bias Mitigation"
     BASE_ML = "No Bias Mitigation"
 
@@ -84,6 +88,7 @@ class Tester:
         self._evals = None
 
         rep = 0
+        retry = 0
         while (rep < repetitions):
             if not same_data_split: self._data.new_data_split()
             
@@ -97,8 +102,12 @@ class Tester:
                 evals = self._evaluate(Metrics(X, y, rep_preds, predict), metric_names, sensitive_attr)
             except MetricException as e:
                 print("invalid metric on rep ", rep,  e)
+                retry += 1
+                if retry == MAX_RETRY:
+                    break
             else:
                 rep+=1
+                retry = 0
 
                 self._acc_evals(evals)
                 self._preds.append(rep_preds)
@@ -178,13 +187,17 @@ class Tester:
             return ReweighingModel(other)
         elif name == self.FYP:
             return FypModel(other)
+        elif name == self.FYP_VAE:
+            return FypMaskModel(other)
         else:
             raise RuntimeError("Incorrect method name ", name)
 
     def save_test_results(self, evals: Dict[str, Any], dataset: str,
                           bias_mit: str, ml_method: str, bias_ml_method: str,
                           sensitive_attr: List[str], same_data_split, other):
-        nr_samples = np.size(list(evals.values())[0])
+        nr_samples = 0
+        if evals:
+            nr_samples = np.size(list(evals.values())[0])
 
         entry = {
             "timestamp": [pd.Timestamp.now()],
@@ -198,10 +211,11 @@ class Tester:
             "other": [other],
         }
 
-        entry.update({key: [np.average(evals[key])] for key in evals})
-        entry.update({"VAR|"+key: [np.var(evals[key])] for key in evals})
-        res = pd.DataFrame(entry)
+        if evals:
+            entry.update({key: [np.average(evals[key])] for key in evals})
+            entry.update({"VAR|"+key: [np.var(evals[key])] for key in evals})
 
+        res = pd.DataFrame(entry)
 
         if self._file and path.exists(self._file):
             res = pd.concat([res, pd.read_csv(self._file)], ignore_index=True)

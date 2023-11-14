@@ -114,7 +114,9 @@ class Metrics:
     # etc other metrics
 
     def precision(self) -> float:
-        return self._round(precision_score(self._y, self._preds))
+        per = self._round(precision_score(self._y, self._preds))
+        if per == 0: raise MetricException("percision fail val = 0")
+        return per
 
     def recall(self) -> float:
         return self._round(recall_score(self._y, self._preds))
@@ -134,15 +136,22 @@ class Metrics:
         conf1 = self.confusionMatrix(ind1)
         if (conf0['tp'] + conf0['fn']) == 0:
             tpr0 = 0
-            tpr1 = 0
         else:
             tpr0 = conf0['tp'] / (conf0['tp'] + conf0['fn'])
+
+        if (conf1['tp'] + conf1['fn']) == 0:
+            tpr1 = 0
+        else:
             tpr1 = conf1['tp'] / (conf1['tp'] + conf1['fn'])
+
         if (conf0['fp'] + conf0['tn']) == 0:
             fpr0 = 0
-            fpr1 = 0
         else:
             fpr0 = conf0['fp'] / (conf0['fp'] + conf0['tn'])
+
+        if (conf1['fp'] + conf1['tn']) == 0:
+            fpr1 = 0
+        else:
             fpr1 = conf1['fp'] / (conf1['fp'] + conf1['tn'])
         return abs(self._round(0.5 * (tpr1 + fpr1 - tpr0 - fpr0)))
 
@@ -156,12 +165,15 @@ class Metrics:
         ind1 = np.where(self._X[attribute] == 1)[0]
         conf0 = self.confusionMatrix(ind0)
         conf1 = self.confusionMatrix(ind1)
-        if (conf0['tp'] + conf0['fn']) == 0:
-            tpr0 = 0
+        if (conf1['tp'] + conf1['fn']) == 0:
             tpr1 = 0
         else:
-            tpr0 = conf0['tp'] / (conf0['tp'] + conf0['fn'])
             tpr1 = conf1['tp'] / (conf1['tp'] + conf1['fn'])
+
+        if (conf0['tp'] + conf0['fn']) == 0:
+            tpr0 = 0
+        else:
+            tpr0 = conf0['tp'] / (conf0['tp'] + conf0['fn'])
         return abs(self._round(tpr1 - tpr0))
 
     def spd(self, attribute) -> float:
