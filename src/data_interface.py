@@ -85,7 +85,7 @@ class Data:
         numerical_columns = numerical_columns_selector(X)
         non_binary_numerical_columns = [
             column for column in numerical_columns
-            if len(X[column].unique()) > 2
+            if len(X[column].unique()) > 2 or sum(abs(X[column].unique())) > 2
         ]
 
         numerical_processor = StandardScaler()
@@ -98,7 +98,10 @@ class Data:
         transformer.fit_transform(X)
         X = transformer.transform(X)
         transformed_column_names = transformer.get_feature_names_out()
-        return pd.DataFrame(X, columns=transformed_column_names)
+        X = pd.DataFrame(X, columns=transformed_column_names, dtype=np.float32)
+        print("THEDGHSFKJHASG")
+        print(X)
+        return X
 
 
     

@@ -41,23 +41,28 @@ class FypMaskModel(Model):
         :param other: dictionary of any other params that we might wish to pass?, defaults to {}
         :type other: Dict[str, Any], optional
         """
+
+        columns = X.shape[1]
+        my_other = other | {"input_dim":columns}
+
+        #print(X)
         
         self._method_bias = method_bias
-        
         self._sensitive = sensitive_attributes
 
         self.position_to_insert = X.shape[1] -1  # Number of existing columns -1
 
+        #print(self.position_to_insert, self._sensitive[0])
         X.insert(self.position_to_insert, self._sensitive[0], X.pop(self._sensitive[0]))
 
-        #print("DATA INPUT TRAINI*NG")
-        #print((X))
-
+        print("DATA INPUT TRAINI*NG")
+        print(X)
+        
         # Build the mask_model for predicting each protected attribute
-        self.build_mask_model( torch.tensor(X.values, dtype=torch.float32))
+        self.build_mask_model( torch.tensor(X.values, dtype=torch.float32), my_other)
             
         # Build the model for the actual prediction
-        self._model = self._get_model(method, other)
+        self._model = self._get_model(method, my_other)
         self._model.fit(X, y)
              
 
@@ -72,6 +77,7 @@ class FypMaskModel(Model):
         :return: predictions for each row of X
         :rtype: np.array
         """
+        
         X.insert(self.position_to_insert, self._sensitive[0], X.pop(self._sensitive[0]))
 
         X_masked = self._mask( torch.tensor(X.values, dtype=torch.float32)).detach().numpy()
@@ -89,8 +95,8 @@ class FypMaskModel(Model):
 
         return X_out
     
-    def build_mask_model(self, X):
-        self._mask_models = train_ae(X, self.position_to_insert+1, 2000)
+    def build_mask_model(self, X, other):
+        self._mask_models = train_ae(X, self.position_to_insert+1, other["mask_epoch"])
 
 
     # TODO:

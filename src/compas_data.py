@@ -41,9 +41,9 @@ class CompasData(Data):
         self.new_data_split()  
 
     def my_columns(self, X):
-        return X[['sex', 'age', 'age_cat', 'race',
+        return X[['sex', 'age', 'race',
                   'juv_fel_count', 'juv_misd_count', 'juv_other_count',
-                  'priors_count', 'c_charge_degree', 'c_charge_desc',
+                  'priors_count', 'c_charge_degree', 
                   "decile_score.1", "priors_count.1"]]
                                                                                    
 

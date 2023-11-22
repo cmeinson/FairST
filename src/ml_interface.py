@@ -163,11 +163,11 @@ class Model:
         numerical_columns = numerical_columns_selector(X)
         categorical_columns = categorical_columns_selector(X)
 
-        categorical_processor = OneHotEncoder(handle_unknown = 'ignore')
+        categorical_processor = OneHotEncoder(handle_unknown = 'infrequent_if_exist')
         numerical_processor = StandardScaler()
         transformer = ColumnTransformer([
-            ('OneHotEncoder', categorical_processor, categorical_columns),
-            ('StandardScaler', numerical_processor, numerical_columns)])
+            ('OneHotEncoder', categorical_processor, categorical_columns)], remainder="passthrough") 
+        
         return transformer
     
 
