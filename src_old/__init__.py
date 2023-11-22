@@ -4,4 +4,3 @@ from .fairbalance import FairBalanceModel
 from .fairmask import FairMaskModel
 from .FYP import FypModel
 from .metrics import Metrics
-from .utils import TestConfig
