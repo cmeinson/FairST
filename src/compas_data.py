@@ -8,7 +8,7 @@ from sklearn.model_selection import train_test_split
 class CompasData(Data):
     # NB: if ur implementation of the class takes more than one file pls put it all into sub folder
     # does reading and cleaning go here or do we add extra functions for that?
-    def __init__(self, preprocessing=None, test_ratio=0.2) -> None:
+    def __init__(self, preproc=None, test_ratio=0.2) -> None:
         """
         - reads the according dataset from the ata folder,
         - runs cleaning and preprocessing methods, chosen based on the preprocessing param
@@ -19,32 +19,31 @@ class CompasData(Data):
         :param tests_ratio: determines the proportion of test data, defaults to 0.2
         :type tests_ratio: float, optional
         """
-        self._test_ratio = test_ratio
-        self.data = pd.read_csv('data/compas-scores-two-years.csv')
+        super().__init__('data/compas-scores-two-years.csv', preproc, test_ratio)
 
-        # Do default preprocessing
-        self.pre_processing()
-
-        self._X = pd.DataFrame(self.data)
-        self._y = self.data['Probability'].to_numpy()
-
-        if preprocessing == "FairBalance":
-            self._X = self.fairbalance_columns(self._X)
-        elif preprocessing == "FairMask":
-            self._X = self.fairmask_columns(self._X)
+    def _get_columns(self, dataset: pd.DataFrame, preproc: str) -> pd.DataFrame:
+        """Select used columns"""
+        if preproc == "FairBalance":
+            dataset = self.fairbalance_columns(dataset)
+        elif preproc == "FairMask":
+            dataset = self.fairmask_columns(dataset)
         else:
-            self._X = self.my_columns(self._X)
+            dataset = self.my_columns(dataset)
 
-        self._X = self.std_data_transform(self._X)
-
-        # Create train-test split
-        self.new_data_split()  
+        return self.std_data_transform(dataset)
+    
+    def _get_labels(self, dataset: pd.DataFrame) -> np.array:
+        """Select Y label column"""
+        return dataset['Probability'].to_numpy()
 
     def my_columns(self, X):
-        return X[['sex', 'age', 'race',
-                  'juv_fel_count', 'juv_misd_count', 'juv_other_count',
-                  'priors_count', 'c_charge_degree', 
-                  "decile_score.1", "priors_count.1"]]
+        #return X[['sex', 'age', 'race',
+        #          'juv_fel_count', 'juv_misd_count', 'juv_other_count',
+        #          'priors_count', 'c_charge_degree', 
+        #          "decile_score.1", "priors_count.1"]]
+        # TODO: ADD MORE COLUMNS ONCE WE HAVE ONE HOT
+        return X[["sex", "age_cat", "race", "priors_count", "c_charge_degree", "decile_score.1", "priors_count.1"]]
+
                                                                                    
 
     def fairbalance_columns(self, X):
@@ -55,9 +54,9 @@ class CompasData(Data):
     def fairmask_columns(self, X):
         return X[["sex", "age_cat", "race", "priors_count", "c_charge_degree", "decile_score.1", "priors_count.1"]]
     
-    def pre_processing(self):
+    def _clean_data(self, dataset: pd.DataFrame) -> pd.DataFrame:
         # preprocessing done according to preprocessing.ipynb
-        self.data = self.data.drop(
+        dataset = dataset.drop(
             ['id', 'name', 'first', 'last', 'compas_screening_date', 'dob', 'decile_score',
              'days_b_screening_arrest', 'c_jail_in', 'c_jail_out', 'c_case_number',
              'c_offense_date', 'c_arrest_date', 'c_days_from_compas', 'is_recid', 'r_case_number',
@@ -67,17 +66,19 @@ class CompasData(Data):
              'v_type_of_assessment', 'v_decile_score', 'v_score_text', 'v_screening_date', 'in_custody', 'out_custody',
              'start', 'end', 'event'], axis=1)
 
-        self.data = self.data.dropna()
+        dataset = dataset.dropna()
 
-        self.data['race'] = np.where(self.data['race'] != 'Caucasian', 0, 1)
-        self.data['sex'] = np.where(self.data['sex'] == 'Female', 0, 1)
-        self.data['age_cat'] = np.where(self.data['age_cat'] == 'Greater than 45', 45, self.data['age_cat'])
-        self.data['age_cat'] = np.where(self.data['age_cat'] == '25 - 45', 25, self.data['age_cat'])
-        self.data['age_cat'] = np.where(self.data['age_cat'] == 'Less than 25', 0, self.data['age_cat'])
-        self.data['c_charge_degree'] = np.where(self.data['c_charge_degree'] == 'F', 1, 0)
+        dataset['race'] = np.where(dataset['race'] != 'Caucasian', 0, 1)
+        dataset['sex'] = np.where(dataset['sex'] == 'Female', 0, 1)
+        dataset['age_cat'] = np.where(dataset['age_cat'] == 'Greater than 45', 45, dataset['age_cat'])
+        dataset['age_cat'] = np.where(dataset['age_cat'] == '25 - 45', 25, dataset['age_cat'])
+        dataset['age_cat'] = np.where(dataset['age_cat'] == 'Less than 25', 0, dataset['age_cat'])
+        dataset['c_charge_degree'] = np.where(dataset['c_charge_degree'] == 'F', 1, 0)
 
-        self.data.rename(index=str, columns={"two_year_recid": "Probability"}, inplace=True)
-        self.data['Probability'] = np.where(self.data['Probability'] == 0, 1, 0)
+        dataset.rename(index=str, columns={"two_year_recid": "Probability"}, inplace=True)
+        dataset['Probability'] = np.where(dataset['Probability'] == 0, 1, 0)
+
+        return dataset
 
     def get_sensitive_column_names(self) -> List[str]:
         """
@@ -88,8 +89,3 @@ class CompasData(Data):
         return ['sex', 'race'] # For now removed the age cause it eas not used in a ny papers so not relevant in replication ['sex', 'age_cat', 'race']
         # raise NotImplementedError
 
-    # def transform(self): # LATER
-    #    # will probably rename later. but something for merging attributes into binary ones?
-    #    raise NotImplementedError
-
-# compas = CompasData()

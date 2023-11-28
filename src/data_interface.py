@@ -33,12 +33,13 @@ from keras.optimizers import SGD
 from keras.layers import Dense
 
 
-class Data:
-    # NB: if ur implementation of the class takes more than one file pls put it all into sub folder
 
-    def __init__(self, preprocessing:str = None, test_ratio = 0.2) -> None:
+
+class Data:
+
+    def __init__(self, file_name: str, preprocessing:str = None, test_ratio = 0.2) -> None:
         """
-        - reads the according dataset from the ata folder,
+        - reads the according dataset from the data folder,
         - runs cleaning and preprocessing methods, chosen based on the preprocessing param
         - splits the data into test and train
 
@@ -47,12 +48,46 @@ class Data:
         :param tests_ratio: determines the proportion of test data, defaults to 0.2
         :type tests_ratio: float, optional
         """
+        self._test_ratio = test_ratio
+
+        self.dataset_orig = self._clean_data(pd.read_csv(file_name))
+        # base preproc - remove nans, any feature eng i need 
+        # Do default pre-processing
+
+
+        self._y = self._get_labels(self.dataset_orig)
+
+        # selected preproc columns   
+        # fit and apply trainsformer normalisation, one hot encoding (NOTE: keep track of sensitive columns_)
+        # TODO; func that would reverse one hot enc for diplay opurposes?
+        self._X = self._get_columns(self.dataset_orig, preprocessing)
+  
+        # data split
+        self.new_data_split()
+
+    
+    def _clean_data(self, dataset: pd.DataFrame) -> pd.DataFrame:
+        """Data cleaning (e.g. remove nans, any feature eng i need )"""
+        raise NotImplementedError
+    
+    def _get_columns(self, dataset: pd.DataFrame, preprocessing: str) -> pd.DataFrame:
+        """Select used columns"""
+        raise NotImplementedError
+    
+    def _get_labels(self, dataset: pd.DataFrame) -> np.array:
+        """Select Y label column"""
+        raise NotImplementedError
+    
+    def get_sensitive_column_names(self) -> List[str]:
+        """
+        :return: column names (in the X above) of all sensitive attributes in the given dataset
+        :rtype: List[str]
+        """
         raise NotImplementedError
     
     def new_data_split(self) -> None:
         """Changes the data split"""
-        self._X_train, self._X_test, self._y_train, self._y_test = train_test_split(self._X, self._y,
-                                                                                    test_size=0.1) # TOD): PUT IT BACKKKKKKKKKKKKK to self.test_size
+        self._X_train, self._X_test, self._y_train, self._y_test = train_test_split(self._X, self._y, test_size=0.1) # TOD): PUT IT BACKKKKKKKKKKKKK to self.test_size
 
     def get_train_data(self) -> Tuple[pd.DataFrame, np.array]:
         """Returns the training data where
@@ -71,13 +106,6 @@ class Data:
         :rtype: Tuple[pd.DataFrame, np.array]
         """
         return (self._X_test.copy(), self._y_test.copy())
-
-    def get_sensitive_column_names(self) -> List[str]:
-        """
-        :return: column names (in the X above) of all sensitive attributes in the given dataset
-        :rtype: List[str]
-        """
-        raise NotImplementedError
     
     def _get_transformer_scaler(self, X):
         numerical_columns_selector = selector(dtype_exclude=object)
@@ -94,17 +122,15 @@ class Data:
         return transformer
     
     def std_data_transform(self, X):
+        # just normalisation no one hot
         transformer = self._get_transformer_scaler(X)
         transformer.fit_transform(X)
         X = transformer.transform(X)
         transformed_column_names = transformer.get_feature_names_out()
         X = pd.DataFrame(X, columns=transformed_column_names, dtype=np.float32)
-        print("THEDGHSFKJHASG")
         print(X)
         return X
 
-
-    
 
 
 class DummyData(Data):

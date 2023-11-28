@@ -22,7 +22,6 @@ from .result_writer import ResultsWriter
 MAX_RETRY = 15
 
 
-
 class Tester:
     # Avalable datasets for testing:
     ADULT_D = "Adult Dataset"
@@ -48,53 +47,76 @@ class Tester:
         self._metric_names = metric_names
         self._results_writer = ResultsWriter(file_name, dataset_name)
         
-        self._data = None
         self._preds = None #????
-        self._evals = None #????
 
-    def run_tests(self, test_configs: List[TestConfig], repetitions = 1, save_intermid_results=False):        
+    def run_tests(self, test_configs: List[TestConfig], repetitions = 1, save_intermid_results=False):    
+        if repetitions == 1:
+            save_intermid_results=False
+
+        self._check_sensitive_attributes_and_init_datasets(test_configs)
+
         # for reps
-            # new data split
-            # RE TRAIN THE POST PROC no bias mit BASE MODEL! PASS IT INTO THE MODELS ON INIT. save it in self.
-            # run each test config with the data split
+        for _ in range(repetitions):
+            # RE TRAIN THE POST PROC no bias mit BASE MODELS! PASS IT INTO THE MODELS ON INIT. save it in self.
+            #self._train_base_models(test_configs)
+            self._base_models = {} # set to none and train when needed by _get_model
+
+            # run each test config 
+            for conf in test_configs:
+                self._run_test(conf, save_intermid_results)
 
             # only update the data split for each data in self._initd_data dict. (the first it will have the same default)
             # -> the data split is only the same if the preproc is also the same (otherwise not comparable) 
+            self._update_all_data_splits()
         
-        #print all accumulated evals to file
-        pass
+        # print all accumulated evals to file
+        self._results_writer.write_final_results()
+        
 
-    def _run_test(self):
-        #TODO THOINK OF MAKS RETRYS
+    def _run_test(self, config: TestConfig, save_intermid: bool):
+        retrys = 0
+        model = self._get_model(config.bias_mit, config.other)
+        data = self._get_dataset(config.preprocessing)
 
         # RUNNING FOR ONE REP
         # train model
         # tetst model
-        # while True:
-            # try:
-            #   evaluate metrics
-            # except:
-            #   save excemption
-            # else: save evals and break
-        # if needed print last evals to file
-        pass
+        # TODO probs change it along with the data class
+        while True:
+            X, y = data.get_train_data()
+            model.train(X, y, config.sensitive_attr, config.ml_method, config.bias_ml_method, config.other)
+
+            X, y = data.get_test_data()
+            predict = lambda x: model.predict(x.copy(), config.other) # used just for fr
+            self._preds = predict(X)
+            try:
+                evals = self._evaluate(Metrics(X, y, self._preds, predict), config.sensitive_attr)
+            except MetricException as e:
+                print("invalid metric, attmpt nr:", retrys, e)
+                retrys += 1
+                if retrys == MAX_RETRY:
+                    break
+                #   TODO: should i write something to file abt the fail or at least print
+            else: 
+                self._results_writer.add_result(config, evals, save_intermid)
+                break
+        
 
     def get_last_run_preds(self): 
-        """for debugging"""
+        """for debugging. only really useful when running just a single config and a single rep"""
         return self._preds
 
     def get_exceptions(self):
         """for debugging: get exceptions from the last run"""
         return self._exceptions
 
+    #def get_last_data_split(self):
+    #    """for debugging"""
+    #    return *self._data.get_test_data(), *self._data.get_train_data()
 
-    def get_last_data_split(self):
-        """for debugging"""
-        return *self._data.get_test_data(), *self._data.get_train_data()
-
-    def _evaluate(self, metrics: Metrics, metric_names: List[str], sensitive_attr):
+    def _evaluate(self, metrics: Metrics, sensitive_attr):
         evals = {}
-        for name in metric_names:
+        for name in self._metric_names:
             try:
                 if name in Metrics.get_subgroup_dependant():
                     evals[name] = (metrics.get(name, sensitive_attr))
@@ -108,30 +130,31 @@ class Tester:
                 raise e
         return evals
 
-    def _get_dataset(self, name:str, preprocessing:str) -> Data:
+    def _get_dataset(self, preproc:str) -> Data:
         # allows for diff preproc
-        dataset_description = name if not preprocessing else name+preprocessing
-        if dataset_description in self._initd_data:
-            return self._initd_data[dataset_description]
+        dataset_descr = self._dataset_name if not preproc else self._dataset_name+preproc
+        if dataset_descr in self._initd_data:
+            return self._initd_data[dataset_descr]
 
         data = None
-        if name == self.ADULT_D:
-            data = AdultData(preprocessing)
-        elif name == self.COMPAS_D:
-            data = CompasData(preprocessing)
-        elif name == self.MEPS_D:
-            data = MEPSData(preprocessing)
-        elif name == self.GERMAN_D:
-            data = GermanData(preprocessing)
-        elif name == self.DUMMY_D:
-            data = DummyData(preprocessing)
+        if self._dataset_name == self.ADULT_D:
+            data = AdultData(preproc)
+        elif self._dataset_name == self.COMPAS_D:
+            data = CompasData(preproc)
+        elif self._dataset_name == self.MEPS_D:
+            data = MEPSData(preproc)
+        elif self._dataset_name == self.GERMAN_D:
+            data = GermanData(preproc)
+        elif self._dataset_name == self.DUMMY_D:
+            data = DummyData(preproc)
         else:
-            raise RuntimeError("Incorrect dataset name ", name)
+            raise RuntimeError("Incorrect dataset name ", self._dataset_name)
 
-        self._initd_data[dataset_description] = data
+        self._initd_data[dataset_descr] = data
         return data
 
     def _get_model(self, name, other) -> Model:
+        # TODO: pass base model where needed through a func that trains it if needed
         if name == self.FAIRMASK:
             return FairMaskModel(other)
         elif name == self.FAIRBALANCE:
@@ -140,10 +163,25 @@ class Tester:
             return BaseModel(other)
         elif name == self.REWEIGHING:
             return ReweighingModel(other)
-        elif name == self.FYP:
-            return FypModel(other)
         elif name == self.FYP_VAE:
             return FypMaskModel(other)
         else:
             raise RuntimeError("Incorrect method name ", name)
 
+    def _check_sensitive_attributes_and_init_datasets(self, test_configs: List[TestConfig]):
+        """ensurest that a dataset is initialised per each used preproc method
+        and that configs with attributes=None are replaced with all the possible columns from the dataset"""
+        for conf in test_configs:
+            data = self._get_dataset(conf.preprocessing)
+            if not conf.sensitive_attr:
+                conf.sensitive_attr = data.get_sensitive_column_names()
+
+    def _update_all_data_splits(self):
+        for _, data in self._initd_data.items():
+            data.new_data_split()
+
+    def _train_base_models(self, test_configs: List[TestConfig]):
+        # TODO
+        # no need to account for sensitive attr? no bias mit anyway.
+        # TODO; put it in the data class that it will return different orderings of columns depending on sesn attr?
+        pass

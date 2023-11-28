@@ -55,7 +55,8 @@ class ResultsWriter:
                 res_new = pd.concat([res, pd.read_csv(self._file_name)], ignore_index=True)
             res_new.to_csv(self._file_name, index=False)
         except IOError as e:
-            self._file_name = self._file_name + ALTERNATIVE_FILE_NAME_END
+            root, extension = path.splitext(self._file_name)
+            self._file_name = root + ALTERNATIVE_FILE_NAME_END + extension
             print(e)
             print("RENAMING OUTPUT FILE TO:", self._file_name)
             self._append_to_file(res)

@@ -27,41 +27,6 @@ from keras.layers import Activation
 from keras.optimizers import SGD
 from keras.layers import Dense
 
-
-
-class MyModule(nn.Module):
-    def __init__(self, num_units=10, nonlin=F.relu):
-        super(MyModule, self).__init__()
-
-        self.dense0 = nn.Linear(20, num_units)
-        self.nonlin = nonlin
-        self.dropout = nn.Dropout(0.5)
-        self.dense1 = nn.Linear(num_units, 10)
-        self.output = nn.Linear(10, 2)
-
-    def forward(self, data, *a):
-        print("fwd", data)
-        data = data.to(float32)
-        X = self.nonlin(self.dense0(data))
-        X = self.dropout(X)
-        X = F.relu(self.dense1(X))
-        X = F.softmax(self.output(X), dim=-1)
-        return X
-    
-class MyNet(NeuralNetClassifier):
-    def __init__(self, *args, criterion__reduce=False, **kwargs):
-        # make sure to set reduce=False in your criterion, since we need the loss
-        # for each sample so that it can be weighted
-        super().__init__(*args, criterion__reduce=criterion__reduce, **kwargs)
-
-    def get_loss(self, y_pred, y_true, X, *args, **kwargs):
-         # override get_loss to use the sample_weight from X
-         loss_unreduced = super().get_loss(y_pred, y_true, X, *args, **kwargs)
-         sample_weight = X['sample_weight']
-         loss_reduced = (sample_weight * loss_unreduced).mean()
-         return loss_reduced
-
-
 class Model:
     # NB: if ur implementation of the class takes more than one file pls put it all into sub folder
     LG_R = "LogisticRegression" 
@@ -81,49 +46,6 @@ class Model:
         :type other: Dict[str, Any], optional
         """
         raise NotImplementedError
-    
-    def _get_model(self, method, other={}):
-        if method == self.SV_C:
-            return SVC()
-        elif method == self.KN_C:
-            # example of how to pass hyperparams through "other"
-            k = 3 if ("KNN_k" not in other) else other["KNN_k"] 
-            return KNeighborsClassifier(k)
-        elif method == self.NN_C:
-            print("OTHE INPUT",  other)
-            model = Sequential()
-            model.add(Dense(45, input_dim=other["input_dim"] ,
-                activation="relu"))
-            model.add(Dense(45, activation="relu", kernel_initializer="uniform"))
-            model.add(Dense(30, activation="relu", kernel_initializer="uniform"))
-            model.add(Dense(15, activation="relu", kernel_initializer="uniform"))
-            model.add(Dense(1))
-            model.add(Activation("sigmoid"))
-            sgd = SGD(learning_rate=0.001, clipnorm=1)
-            model.compile(loss="binary_crossentropy", optimizer=sgd,
-                metrics=["accuracy"])
-            #return MyNet(MyModule, max_epochs = iter, warm_start=ws)
-            return model
-        elif method == self.NN_old:
-            print("OTHE INPUT",  other)
-            iter = 500 if ("iter_1" not in other) else other["iter_1"] 
-            ws = False if ("warm_start" not in other) else other["warm_start"] 
-            return MLPClassifier( max_iter= iter, warm_start=ws)
-        elif method == self.NB_C:
-            return GaussianNB()
-        elif method == self.RF_C:
-            return RandomForestClassifier()
-        elif method == self.DT_C:
-            return DecisionTreeClassifier()
-        elif method == self.DT_R:
-            return DecisionTreeRegressor()
-        elif method == self.LG_R:
-            return LogisticRegression(max_iter=100000)
-        else:
-            raise RuntimeError("Invalid ml method name: ", method)
-        
-    def _is_regression(self, method):
-        return method in [self.LG_R, self.DT_R]
 
     def train(self, X: pd.DataFrame, y: np.array, sensitive_atributes: List[str], method, method_bias = None, other: Dict[str, Any] = {}):
         """ Trains an ML model
@@ -169,6 +91,47 @@ class Model:
             ('OneHotEncoder', categorical_processor, categorical_columns)], remainder="passthrough") 
         
         return transformer
+    
+        
+    def _get_model(self, method, other={}):
+        if method == self.SV_C:
+            return SVC()
+        elif method == self.KN_C:
+            # example of how to pass hyperparams through "other"
+            k = 3 if ("KNN_k" not in other) else other["KNN_k"] 
+            return KNeighborsClassifier(k)
+        elif method == self.NN_C:
+            model = Sequential()
+            model.add(Dense(45, input_dim=other["input_dim"] ,
+                activation="relu"))
+            model.add(Dense(45, activation="relu", kernel_initializer="uniform"))
+            model.add(Dense(30, activation="relu", kernel_initializer="uniform"))
+            model.add(Dense(15, activation="relu", kernel_initializer="uniform"))
+            model.add(Dense(1))
+            model.add(Activation("sigmoid"))
+            sgd = SGD(learning_rate=0.001, clipnorm=1)
+            model.compile(loss="binary_crossentropy", optimizer=sgd,
+                metrics=["accuracy"])
+            return model
+        elif method == self.NN_old:
+            iter = 500 if ("iter_1" not in other) else other["iter_1"] 
+            ws = False if ("warm_start" not in other) else other["warm_start"] 
+            return MLPClassifier( max_iter= iter, warm_start=ws)
+        elif method == self.NB_C:
+            return GaussianNB()
+        elif method == self.RF_C:
+            return RandomForestClassifier()
+        elif method == self.DT_C:
+            return DecisionTreeClassifier()
+        elif method == self.DT_R:
+            return DecisionTreeRegressor()
+        elif method == self.LG_R:
+            return LogisticRegression(max_iter=100000)
+        else:
+            raise RuntimeError("Invalid ml method name: ", method)
+        
+    def _is_regression(self, method):
+        return method in [self.LG_R, self.DT_R]
     
 
 
