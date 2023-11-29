@@ -122,5 +122,8 @@ class Model:
 
 class BaseModel(Model):
     def fit(self, X: pd.DataFrame, y: np.array):
-        self._model = self._get_model() #  | {"input_dim":X.shape[1]} 
-        self._model.fit(X, y)
+        if not self._model:
+            #print("fit base model", self._config.bias_mit, self._config.sensitive_attr)
+            self._model = self._get_model() #  | {"input_dim":X.shape[1]} 
+            self._model.fit(X, y)
+        # incorrect, TODO: take IN a base model and just do nothing upon training

@@ -63,6 +63,7 @@ class Tester:
 
             # run each test config 
             for conf in test_configs:
+                #print("run conf", conf)
                 self._run_test(conf, save_intermid_results)
 
             # only update the data split for each data in self._initd_data dict. (the first it will have the same default)
@@ -195,8 +196,3 @@ class Tester:
         for _, data in self._initd_data.items():
             data.new_data_split()
 
-    def _train_base_models(self, test_configs: List[TestConfig]):
-        # TODO
-        # no need to account for sensitive attr? no bias mit anyway.
-        # TODO; put it in the data class that it will return different orderings of columns depending on sesn attr?
-        pass

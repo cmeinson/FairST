@@ -49,6 +49,7 @@ class FairMaskModel(Model):
                 clf = self._get_model(method, other)
                 clf.fit(X_non_sens, X[attr])
                 y_proba = clf.predict_proba(X_non_sens)
+                # TODO: seems sus
                 y_proba = [each[1] for each in y_proba]
                 mask_model.fit(X_non_sens, y_proba)
             self._mask_models[attr] = mask_model 
