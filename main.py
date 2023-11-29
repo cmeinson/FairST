@@ -16,7 +16,7 @@ mls = [
     TestConfig(Tester.FAIRMASK, Model.RF_C, Model.DT_R, sensitive_attr=["sex"]),
     TestConfig(Tester.REWEIGHING, Model.RF_C, sensitive_attr=["sex"]),
     TestConfig(Tester.BASE_ML, Model.RF_C, sensitive_attr=["sex"]),   
-    TestConfig(Tester.BASE_ML, Model.RF_C, sensitive_attr=["race"])
+    TestConfig(Tester.BASE_ML, Model.RF_C, sensitive_attr=["race"], other={"sdf":11})
     ]
 
 

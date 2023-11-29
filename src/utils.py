@@ -20,3 +20,15 @@ class TestConfig:
             frozenset(self.other.items()) if self.other else None,
         )
         return hash(hash_tuple)
+    
+    def __str__(self):
+        attrs = [
+            f"{key}={value}"
+            for key, value in self.__dict__.items()
+            if key not in ["other"]
+        ]
+        other_attrs = [
+            f"{key}={value}"
+            for key, value in self.other.items()
+        ]
+        return f"TestConfig({', '.join(attrs + other_attrs)})"
