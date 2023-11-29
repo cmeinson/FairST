@@ -26,6 +26,7 @@ from keras.models import Sequential
 from keras.layers import Activation
 from keras.optimizers import SGD
 from keras.layers import Dense
+from .utils import TestConfig
 
 class Model:
     # NB: if ur implementation of the class takes more than one file pls put it all into sub folder
@@ -39,61 +40,40 @@ class Model:
     NN_old = "MLPClassifier"
     NB_C = "NaiveBayes"
 
-    def __init__(self, other: Dict[str, Any] = {}) -> None:
-        """Idk does not really do much yet I think:)
-
-        :param other: any hyperparams we need to pass, defaults to {}
-        :type other: Dict[str, Any], optional
+    def __init__(self, config: TestConfig) -> None:
         """
-        raise NotImplementedError
+        """
+        self._config = config
+        self._model = None
 
-    def train(self, X: pd.DataFrame, y: np.array, sensitive_atributes: List[str], method, method_bias = None, other: Dict[str, Any] = {}):
+    def fit(self, X: pd.DataFrame, y: np.array):
         """ Trains an ML model
 
         :param X: training data
         :type X: pd.DataFrame
         :param y: training data outcomes
         :type y: np.array
-        :param sensitive_atributes: names of sensitive attributes to be protected
-        :type sensitive_atributes: List[str]
-        :param method:  ml algo name to use for the main model training
-        :type method: _type_
-        :param method_bias: method name if needed for the bias mitigation, defaults to None
-        :type method_bias: _type_, optional
-        :param other: dictionary of any other parms that we might wish to pass?, defaults to {}
-        :type other: Dict[str, Any], optional
         """
         raise NotImplementedError
 
-    def predict(self, X: pd.DataFrame, other: Dict[str, Any] = {}) -> np.array:
+    def predict(self, X: pd.DataFrame) -> np.array:
         """ Uses the previously trained ML model
 
         :param X: testing data
         :type X: pd.DataFrame
-        :param other: dictionary of any other parms that we might wish to pass?, defaults to {}
-        :type other: Dict[str, Any], optional
 
         :return: predictions for each row of X
         :rtype: np.array
         """
-        raise NotImplementedError
-    
-    def _get_transformer(self, X):
-        numerical_columns_selector = selector(dtype_exclude=object)
-        categorical_columns_selector = selector(dtype_include=object)
-
-        numerical_columns = numerical_columns_selector(X)
-        categorical_columns = categorical_columns_selector(X)
-
-        categorical_processor = OneHotEncoder(handle_unknown = 'infrequent_if_exist')
-        numerical_processor = StandardScaler()
-        transformer = ColumnTransformer([
-            ('OneHotEncoder', categorical_processor, categorical_columns)], remainder="passthrough") 
-        
-        return transformer
+        y = self._model.predict(X)
+        return self._binarise(y)
     
         
-    def _get_model(self, method, other={}):
+    def _get_model(self, method = None):
+        other = self._config.other
+        if not method:
+            method = self._config.ml_method
+
         if method == self.SV_C:
             return SVC()
         elif method == self.KN_C:
@@ -133,30 +113,14 @@ class Model:
     def _is_regression(self, method):
         return method in [self.LG_R, self.DT_R]
     
-
-
-class BaseModel(Model):
-    OPT_FBALANCE = "Apply fairbalance column transform"
-
-    def __init__(self, other: Dict[str, Any] = {}) -> None:
-        self._use_transformer = (self.OPT_FBALANCE in other) and (other[self.OPT_FBALANCE])    
-        self._model = None
-
-    def train(self, X: pd.DataFrame, y: np.array, sensitive_atributes: List[str], method, method_bias = None, other: Dict[str, Any] = {}):
-        self._model = self._get_model(method, other | {"input_dim":X.shape[1]})  
-        self.transformer = self._get_transformer(X)   
-        if self._use_transformer:     
-            self._model.fit(self.transformer.fit_transform(X), y)
-        else:
-            self._model.fit(X.to_numpy(), y)
-
-    def predict(self, X: pd.DataFrame, other: Dict[str, Any] = {}) -> np.array:
-        if self._use_transformer:  
-            y = self._model.predict(self.transformer.transform(X))
-        else:
-            y = self._model.predict(X)
-
+    def _binarise(self, y: np.array) -> np.array:
         y[y>=0.5] = 1
         y[y<=0.5] = 0
         return y
     
+
+
+class BaseModel(Model):
+    def fit(self, X: pd.DataFrame, y: np.array):
+        self._model = self._get_model() #  | {"input_dim":X.shape[1]} 
+        self._model.fit(X, y)

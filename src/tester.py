@@ -75,7 +75,7 @@ class Tester:
 
     def _run_test(self, config: TestConfig, save_intermid: bool):
         retrys = 0
-        model = self._get_model(config.bias_mit, config.other)
+        model = self._get_model(config)
         data = self._get_dataset(config.preprocessing)
 
         # RUNNING FOR ONE REP
@@ -84,10 +84,10 @@ class Tester:
         # TODO probs change it along with the data class
         while True:
             X, y = data.get_train_data()
-            model.train(X, y, config.sensitive_attr, config.ml_method, config.bias_ml_method, config.other)
+            model.fit(X, y)
 
             X, y = data.get_test_data()
-            predict = lambda x: model.predict(x.copy(), config.other) # used just for fr
+            predict = lambda x: model.predict(x.copy()) # used just for fr
             self._preds = predict(X)
             try:
                 evals = self._evaluate(Metrics(X, y, self._preds, predict), config.sensitive_attr)
@@ -153,21 +153,36 @@ class Tester:
         self._initd_data[dataset_descr] = data
         return data
 
-    def _get_model(self, name, other) -> Model:
+    def _get_model(self, config: TestConfig) -> Model:
         # TODO: pass base model where needed through a func that trains it if needed
-        if name == self.FAIRMASK:
-            return FairMaskModel(other)
+        name = config.bias_mit
+        if name == self.BASE_ML:
+            return self._get_base_model(config) # TODO: check if base model alr trained for the preproc
         elif name == self.FAIRBALANCE:
-            return FairBalanceModel(other)
-        elif name == self.BASE_ML:
-            return BaseModel(other)
+            return FairBalanceModel(config)
         elif name == self.REWEIGHING:
-            return ReweighingModel(other)
+            return ReweighingModel(config)
+        elif name == self.FAIRMASK:
+            return FairMaskModel(config, self._get_base_model(config))
         elif name == self.FYP_VAE:
-            return FypMaskModel(other)
+            return FypMaskModel(config, self._get_base_model(config))
         else:
             raise RuntimeError("Incorrect method name ", name)
+        
+    def _get_base_model(self, config: TestConfig) -> Model:
+        # return if previously initd
+        preproc = config.preprocessing
+        base_descr = config.ml_method if not preproc else config.ml_method + preproc
+        
+        if base_descr not in self._base_models:
+            # train a base model with no bias mit (unique for every prproc+ml_method)
+            X, y = self._get_dataset(config.preprocessing).get_train_data()
+            model =  BaseModel(config)
+            model.fit(X, y)
+            self._base_models[base_descr] = model
 
+        return self._base_models[base_descr]
+        
     def _check_sensitive_attributes_and_init_datasets(self, test_configs: List[TestConfig]):
         """ensurest that a dataset is initialised per each used preproc method
         and that configs with attributes=None are replaced with all the possible columns from the dataset"""
