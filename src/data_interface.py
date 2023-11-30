@@ -107,18 +107,27 @@ class Data:
         """
         return (self._X_test.copy(), self._y_test.copy())
     
-    def _get_transformer_scaler(self, X):
+    def _get_transformer_scaler(self, X, onehot = True):
         numerical_columns_selector = selector(dtype_exclude=object)
-
         numerical_columns = numerical_columns_selector(X)
         non_binary_numerical_columns = [
             column for column in numerical_columns
             if len(X[column].unique()) > 2 or sum(abs(X[column].unique())) > 2
         ]
-
         numerical_processor = StandardScaler()
+
+        if not onehot:
+            return ColumnTransformer([('StandardScaler', numerical_processor, non_binary_numerical_columns)], remainder="passthrough", verbose_feature_names_out = False, sparse_threshold=0)
+        
+        categorical_columns_selector = selector(dtype_include=object)
+        categorical_columns = categorical_columns_selector(X)
+        categorical_processor = OneHotEncoder(handle_unknown = 'infrequent_if_exist')
+
         transformer = ColumnTransformer([
-            ('StandardScaler', numerical_processor, non_binary_numerical_columns)], remainder="passthrough", verbose_feature_names_out = False)
+            ('StandardScaler', numerical_processor, non_binary_numerical_columns),
+            ('OneHotEncoder', categorical_processor, categorical_columns)
+            ], remainder="passthrough", verbose_feature_names_out = False, sparse_threshold=0)
+        
         return transformer
     
     def std_data_transform(self, X):
@@ -126,9 +135,10 @@ class Data:
         transformer = self._get_transformer_scaler(X)
         transformer.fit_transform(X)
         X = transformer.transform(X)
+        
         transformed_column_names = transformer.get_feature_names_out()
+
         X = pd.DataFrame(X, columns=transformed_column_names, dtype=np.float32)
-        print(X)
         return X
 
 

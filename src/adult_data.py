@@ -62,9 +62,9 @@ class AdultData(Data):
         return X.drop(['fnlwgt', 'education', 'Probability'], axis=1)
     
     def my_columns(self, X):
-        #return X.drop(['fnlwgt',  'Probability'], axis=1)
+        return X.drop(['fnlwgt',  'Probability'], axis=1)
         # TODO: ADD MORE COLUMNS ONCE WE HAVE ONE HOT
-        return X.drop(['workclass', 'fnlwgt', 'education', 'marital-status', 'occupation', 'relationship', 'native-country', 'Probability'], axis=1)
+        #return X.drop(['workclass', 'fnlwgt', 'education', 'marital-status', 'occupation', 'relationship', 'native-country', 'Probability'], axis=1)
 
     
     def get_sensitive_column_names(self) -> List[str]:

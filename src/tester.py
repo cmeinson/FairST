@@ -123,7 +123,7 @@ class Tester:
                     evals[name] = (metrics.get(name, sensitive_attr))
                 elif name in Metrics.get_attribute_dependant():
                     for attr in sensitive_attr:
-                        evals[attr + '|' + name] = (metrics.get(name, attr))
+                        evals[attr + '|' + name] = (metrics.get(name, [attr]))
                 else:
                     evals[name] = (metrics.get(name))
             except MetricException as e:

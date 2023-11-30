@@ -37,12 +37,12 @@ class CompasData(Data):
         return dataset['Probability'].to_numpy()
 
     def my_columns(self, X):
-        #return X[['sex', 'age', 'race',
-        #          'juv_fel_count', 'juv_misd_count', 'juv_other_count',
-        #          'priors_count', 'c_charge_degree', 
-        #          "decile_score.1", "priors_count.1"]]
+        return X[['sex', 'age', 'race',
+                  'juv_fel_count', 'juv_misd_count', 'juv_other_count',
+                  'priors_count', 'c_charge_degree', 
+                  "decile_score.1", "priors_count.1"]]
         # TODO: ADD MORE COLUMNS ONCE WE HAVE ONE HOT
-        return X[["sex", "age_cat", "race", "priors_count", "c_charge_degree", "decile_score.1", "priors_count.1"]]
+        #return X[["sex", "age_cat", "race", "priors_count", "c_charge_degree", "decile_score.1", "priors_count.1"]]
 
                                                                                    
 
