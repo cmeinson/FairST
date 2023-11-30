@@ -123,9 +123,22 @@ class Tester:
                     evals[name] = (metrics.get(name, sensitive_attr))
                 elif name in Metrics.get_attribute_dependant():
                     for attr in sensitive_attr:
-                        evals[attr + '|' + name] = (metrics.get(name, [attr]))
+                        evals[attr + '|' + name] = (metrics.get(name, attr))
                 else:
                     evals[name] = (metrics.get(name))
+
+
+                # --------------------------------------------------------------------------------TODO del
+                old_name = 'OLD'+name
+                if name in Metrics.get_subgroup_dependant():
+                    evals[old_name] = (metrics.get(old_name, sensitive_attr))
+                elif name in Metrics.get_attribute_dependant():
+                    for attr in sensitive_attr:
+                        evals[attr + '|' + old_name] = (metrics.get(old_name, attr))
+                else:
+                    evals[old_name] = (metrics.get(old_name))
+                # --------------------------------------------------------------------------------TODO del
+
             except MetricException as e:
                 self._exceptions.append([e,name])
                 raise e

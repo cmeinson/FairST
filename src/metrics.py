@@ -83,8 +83,7 @@ class Metrics:
     def get(self, metric_name, attr: List[str] or str = None):
         self._last_call = metric_name
         # -------------------------------------------------------------
-        is_old = (metric_name[:3] == 'OLD')
-        if is_old:
+        if (metric_name[:3] == 'OLD'):
             metric_name = metric_name[3:] 
             if metric_name == self.ACC:
                 return self.accuracy()
