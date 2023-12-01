@@ -2,20 +2,14 @@ import numpy as np
 import pandas as pd
 from typing import List, Callable
 import warnings
-from sklearn import metrics
-from itertools import combinations
-import copy
 import math
-from collections import defaultdict
 from itertools import permutations
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
 from sklearn.metrics import confusion_matrix
 
 
-# how do we wanna do metrics?
 class MetricException(Exception):
     pass
-# we can do just a simple metrcs class with all the mathy functions and then a separate evaluator class?
 
 class Metrics:
     # All available metrics:
@@ -104,8 +98,8 @@ class Metrics:
 
         if metric_name in metrics_dict:
             return metrics_dict[metric_name](attr)
-        else:
-            raise RuntimeError("Invalid metric name:", metric_name)
+        
+        raise RuntimeError("Invalid metric name:", metric_name)
 
     def _div_guard(self, value):
         if value == 0:
@@ -124,6 +118,7 @@ class Metrics:
             # TODO: what if there are no positive / negative labels at all
             cm['tpr'] = tp / self._div_guard(tp + fn)
             cm['fpr'] = fp / self._div_guard(fp + tn)
+            cm['pr'] = cm['p'] / (cm['p'] + cm['n'])
             self._computed_cms[key] = cm
 
         return self._computed_cms[key]
@@ -146,29 +141,23 @@ class Metrics:
     
     def spd(self, attribute: str) -> float:
         cm0, cm1 = self._get_attribute_cms(attribute)
-        pr0 = cm0['p'] / (cm0['p'] + cm0['n'])
-        pr1 = cm1['p'] / (cm1['p'] + cm1['n'])
-        return abs(pr1 - pr0)
+        return abs(cm1['pr'] - cm0['pr'])
     
     def di(self, attribute: str) -> float:
         cm0, cm1 = self._get_attribute_cms(attribute)
-        pr0 = cm0['p'] / (cm0['p'] + cm0['n'])
-        pr1 = cm1['p'] / (cm1['p'] + cm1['n'])
-        if pr0 == 0  and pr1 == 0:
+        if cm0['pr'] == 0  and cm1['pr'] == 0:
             return 1 # NOTE! 1 if they are the same!!
-        if pr1 == 0:
+        if cm1['pr'] == 0:
             raise MetricException("DI fail pr1 = 0", attribute)
-        return pr0/pr1
+        return cm0['pr']/cm1['pr']
     
     def di_fm(self, attribute: str) -> float:
         cm0, cm1 = self._get_attribute_cms(attribute)
-        pr0 = cm0['p'] / (cm0['p'] + cm0['n'])
-        pr1 = cm1['p'] / (cm1['p'] + cm1['n'])
-        if pr0 == 0  and pr1 == 0:
+        if cm0['pr'] == 0  and cm1['pr'] == 0:
             return 1 # NOTE! 1 if they are the same!!
-        if pr0 == 0:
+        if cm0['pr'] == 0:
             raise MetricException("DI FM fail pr0 = 0", attribute)
-        return abs(1-pr1/pr0)
+        return abs(1-cm1['pr']/cm0['pr'])
     
     def fr(self, attribute):
         preds_flip = self._predict(self.flip_X(attribute))
