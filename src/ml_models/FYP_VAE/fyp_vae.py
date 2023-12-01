@@ -14,7 +14,6 @@ from .configs import VAEMaskConfig
 
 
 
-
 # TODO: no longer attr col last
 
 class VAEMaskModel(Model):
@@ -42,14 +41,15 @@ class VAEMaskModel(Model):
         :type y: np.array
         """
         self._column_names = X.columns.tolist()
-        self._config.other[VAE.INPUT_DIM] = len(self._column_names)
+        input_dim = len(self._column_names)
 
         # TODO: SENS ATTRIBUTE
+        sens_column_ids = [0, 1] # TODO !!!!!
 
 
         # Build the mask_model for predicting each protected attribute
         tensor = torch.tensor(X.values, dtype=torch.float32)
-        self._mask_models = self.train_ae(tensor)
+        self._mask_models = self.train_vae(tensor, sens_column_ids, input_dim)
             
         # Build the model for the actual prediction
         #self._model = self._get_model(method, my_other)
@@ -81,9 +81,9 @@ class VAEMaskModel(Model):
 
         return X_out
     
-    def train_ae(self, X, input_dim = 0, epochs = 1000):
+    def train_vae(self, X, sens_column_ids, input_dim = 0, epochs = 100):
         COUNTER = 0
-        model = VAE(self._vm_config, input_dim)
+        model = VAE(self._vm_config, input_dim, sens_column_ids)
         optimizer = optim.Adam(model.parameters(), lr=0.007)#, momentum=0.3)
         model.train()
 
@@ -92,10 +92,10 @@ class VAEMaskModel(Model):
         for epoch in range(epochs):
             COUNTER +=1
             # predict on main model -> mu, std, z, decoded
-            outputs, mu, std, z, attr_col = model.forward(X)
+            outputs, mu, std, z, attr_cols = model.forward(X)
 
             # train each loss model and get loss 
-            loss = self._get_total_loss(loss_models, X, outputs, mu, std, z, attr_col)
+            loss = self._get_total_loss(loss_models, X, outputs, mu, std, z, attr_cols)
 
             optimizer.zero_grad()
             # train main model    
@@ -108,10 +108,10 @@ class VAEMaskModel(Model):
         model.eval()
         return model
     
-    def _get_total_loss(self, loss_models, original_X, decoded_X, mu, std, z, attr_col):
+    def _get_total_loss(self, loss_models, original_X, decoded_X, mu, std, z, attr_cols):
         losses = []
         for model in loss_models:
-            model.set_current_state(original_X, decoded_X, mu, std, z, attr_col)
+            model.set_current_state(original_X, decoded_X, mu, std, z, attr_cols)
             losses.append(model.get_loss())
 
         return sum(losses)

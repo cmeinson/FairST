@@ -3,7 +3,7 @@ class VAEMaskConfig:
     KL_DIV_LOSS = "KL divergence loss"
     RECON_LOSS = "Reconstruction loss"
     LATENT_S_ADV_LOSS = "loss from an adversaty trying to predict z->s"
-    def __init__(self, epochs = 100, latent_dim = 10, vae_layers = (90, 60, 30), losses_used = set(KL_DIV_LOSS, RECON_LOSS, LATENT_S_ADV_LOSS)):
+    def __init__(self, epochs = 100, latent_dim = 10, vae_layers = (90, 60, 30), losses_used = {KL_DIV_LOSS, RECON_LOSS, LATENT_S_ADV_LOSS}):
         self.epochs = epochs
         self.latent_dim = latent_dim
         self.vae_layers = vae_layers
