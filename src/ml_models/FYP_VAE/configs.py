@@ -9,6 +9,8 @@ class VAEMaskConfig:
         self.vae_layers = vae_layers
         self.lossed_used = losses_used
         self.loss_configs = {}
+        self.sens_column_ids = None
+        self.input_dim = None
         for loss in losses_used:
             self.config_loss(loss)
 
@@ -19,6 +21,12 @@ class VAEMaskConfig:
             self._config_recon(*kwargs)
         elif loss_name == self.LATENT_S_ADV_LOSS:
             self._config_latent_s(*kwargs)
+
+    def set_input_dim_and_sens_column_ids(self, input_dim, ids):
+        self.input_dim = input_dim
+        self.sens_column_ids = ids
+        for loss_config in self.loss_configs.values():
+            loss_config["non_sens_latent_dim"] = self.latent_dim - len(ids)
 
     def _config_KL_div(self, weight=0.01):
         self.loss_configs[self.KL_DIV_LOSS] = {

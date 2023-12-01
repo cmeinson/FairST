@@ -13,12 +13,16 @@ from .configs import VAEMaskConfig
 
 
 class VAE(Module):
-    def __init__(self, config: VAEMaskConfig, input_dim: int, sens_column_ids: List[int]):
+    def __init__(self, config: VAEMaskConfig):
         super().__init__()
-        self._sens_column_ids = sens_column_ids
-        sens_attr_nr = len(sens_column_ids)
+        self._sens_column_ids = config.sens_column_ids
+        input_dim = config.input_dim
+        sens_attr_nr = len(config.sens_column_ids)
 
         layers = [input_dim] + list(config.vae_layers)
+
+        print("vae LAYERS", layers, config.latent_dim - sens_attr_nr, sens_attr_nr)
+
         
         # Encoder input dim -> last layer size
         enc_layers = []
@@ -36,8 +40,8 @@ class VAE(Module):
         self._decoder = nn.Sequential(*dec_layers)
         
 
-        self.fc_mu = nn.Linear(layers[2], config.latent_dim - sens_attr_nr )
-        self.fc_std = nn.Linear(layers[2], config.latent_dim - sens_attr_nr)
+        self.fc_mu = nn.Linear(layers[-1], config.latent_dim - sens_attr_nr )
+        self.fc_std = nn.Linear(layers[-1], config.latent_dim - sens_attr_nr)
         #end_solution
 
     def add_attr_cols(self, x, attr_cols: List[Tensor]):
@@ -52,7 +56,7 @@ class VAE(Module):
         # keeps the og attr if attr not specifies
         #print("og en", image)
         # TODO: will probably have to pass the indxs of sensitive columns
-        attr_cols = [image[:, i] for i in self._sens_column_ids]
+        attr_cols = [image[:, i, None] for i in self._sens_column_ids]
         if attrs:
             for i in range(len(attr_cols)):
                 attr_cols[i] = torch.full_like(attr_cols[i], fill_value=attrs[i]) 
@@ -75,8 +79,8 @@ class VAE(Module):
         z = mu + eps * std
         return z
     
-    def forward(self, image, attr = None):
-        mu, std, attr_cols = self.encoder(image, attr)
+    def forward(self, image, attrs = None):
+        mu, std, attr_cols = self.encoder(image, attrs)
         z = self.reparametrization_trick(mu, std)
         full_z = self.add_attr_cols(z, attr_cols)
         decoded_image = self.decoder(full_z)
@@ -89,8 +93,9 @@ class Discriminator(nn.Module):
     def __init__(self, config: Dict):
         super(Discriminator, self).__init__()
         layers = [config['latent_dim']-1] + list(config['layers'])
+        print("DISCR LAYERS", layers)
 
-        # latent dim-1  ->  1
+        # (latent dim)-(no of sens cols)  ->  1
         sq_layers = []
         for i in range(len(layers)-1):
             sq_layers.append(nn.Linear(layers[i], layers[i+1]))

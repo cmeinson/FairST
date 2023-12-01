@@ -60,7 +60,8 @@ class LatentDiscrLoss(LossModel):
         discr_pred =  self.discr.forward(self.mu) 
     
         # calc discr LOSS
-        discr_loss = (nn.MSELoss()(discr_pred,self.attr_col.detach().clone()))
+        # TODO: !!!!!!!!!!!!!!!! only predicts first attr
+        discr_loss = (nn.MSELoss()(discr_pred,self.attr_col[0].detach().clone()))
 
         # trains discr
         discr_loss.backward(retain_graph=True)

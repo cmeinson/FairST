@@ -155,7 +155,7 @@ class DummyData(Data):
         self.new_data_split()        
 
     def get_sensitive_column_names(self) -> List[str]:
-        return ["sensitive", "sensitive2"]
+        return ["sensitive"]
     
     def my_experiment(self):
         n = 10000

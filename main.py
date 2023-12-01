@@ -7,16 +7,16 @@ n_repetitions = 1
 results_filename = "refactor"
 other = {}
 
-datasets = [Tester.ADULT_D,  Tester.COMPAS_D]#, Tester.GERMAN_D, Tester.ADULT_D,], Tester.COMPAS_D, 
+datasets = [Tester.DUMMY_D] #[Tester.ADULT_D,  Tester.COMPAS_D]#, Tester.GERMAN_D, Tester.ADULT_D,], Tester.COMPAS_D, 
 
 
 
 mls = [
-    TestConfig(Tester.BASE_ML, Model.LG_R, sensitive_attr=["sex", 'race']),   
+    TestConfig(Tester.BASE_ML, Model.LG_R),   
     #TestConfig(Tester.FAIRMASK, Model.RF_C, Model.DT_R, sensitive_attr=["sex"]),
     #TestConfig(Tester.REWEIGHING, Model.RF_C, sensitive_attr=["sex"]),
     #TestConfig(Tester.BASE_ML, Model.RF_C, sensitive_attr=["sex"]),   
-    TestConfig(Tester.FYP_VAE, Model.LG_R, sensitive_attr=["race"], other={VAEMaskModel.VAE_MASK_CONFIG: VAEMaskConfig()})
+    TestConfig(Tester.FYP_VAE, Model.LG_R, other={VAEMaskModel.VAE_MASK_CONFIG: VAEMaskConfig()})
     ]
 
 

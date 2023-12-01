@@ -44,12 +44,13 @@ class VAEMaskModel(Model):
         input_dim = len(self._column_names)
 
         # TODO: SENS ATTRIBUTE
-        sens_column_ids = [0, 1] # TODO !!!!!
+        sens_column_ids = [0] # TODO !!!!!
+        self._vm_config.set_input_dim_and_sens_column_ids(input_dim, sens_column_ids)
 
 
         # Build the mask_model for predicting each protected attribute
         tensor = torch.tensor(X.values, dtype=torch.float32)
-        self._mask_models = self.train_vae(tensor, sens_column_ids, input_dim)
+        self._mask_models = self.train_vae(tensor)
             
         # Build the model for the actual prediction
         #self._model = self._get_model(method, my_other)
@@ -75,15 +76,15 @@ class VAEMaskModel(Model):
         print(X)
         self._mask_models.eval()
         
-        X_out, *_ = self._mask_models.forward(X,1) # TODO PUT , 1  
+        X_out, *_ = self._mask_models.forward(X,[1]) # TODO PUT , 1  
         print("AFTER MASK")
         print(X_out)  
 
         return X_out
     
-    def train_vae(self, X, sens_column_ids, input_dim = 0, epochs = 100):
+    def train_vae(self, X ,epochs = 100):
         COUNTER = 0
-        model = VAE(self._vm_config, input_dim, sens_column_ids)
+        model = VAE(self._vm_config)
         optimizer = optim.Adam(model.parameters(), lr=0.007)#, momentum=0.3)
         model.train()
 
