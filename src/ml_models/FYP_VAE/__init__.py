@@ -1,1 +1,1 @@
-from .fyp_vae import FypMaskModel
+from .fyp_vae import VAEMaskModel

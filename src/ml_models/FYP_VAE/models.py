@@ -7,54 +7,15 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 
+from .configs import VAEMaskConfig
 
-LATENT_DIM = 10
-
-def kl_divergence_loss(mu,std):
-    
-    #solution
-    #kl_loss = torch.mean(0.5 * torch.sum(torch.exp(std) + mu**2 - 1. - std, 1))
-
-    kl_loss = - torch.mean(0.5 * torch.sum(1. + torch.log(std.pow(2) + 1e-10 ) - mu.pow(2) - std.pow(2), 1))
-    #kl_loss = -0.5 * torch.sum(1 + 2 * torch.log(std + 1e-8) - mu.pow(2) - std)
-
-    #end_solution
-
-    
-    return kl_loss
-
-
-def vae_loss(prediction, target, mu, std, discr_loss = None, COUNTER = 0):
-    
-    #solution
-    #recon_loss =nn.MSELoss()(prediction,target)
-    recon_loss = F.smooth_l1_loss(prediction, target)
-    #print("calculating mse")
-    #print(prediction)
-    #print(target)
-    #recon_loss = F.binary_cross_entropy(prediction, target, reduction="mean")
-    #end_solution
-
-    # disentangelment
-    if not discr_loss:
-        print("\t\t\t\t\t\t\t\t\t",recon_loss, kl_divergence_loss(mu,std))
-
-        return recon_loss +  kl_divergence_loss(mu,std)*0.01
-    
-    discr = torch.clamp(torch.pow(discr_loss, -1)-2, min=0) 
-    
-    if COUNTER%50==0:
-        print("\t\t\t\t\t\t\t\t\t",recon_loss ,discr, kl_divergence_loss(mu,std))
-    #return recon_loss + torch.pow(discr_loss, -1)*(0.1) + kl_divergence_loss(mu,std)*0.01
-    return recon_loss + discr + kl_divergence_loss(mu,std)*0.01
 
 
 class VAE(Module):
-    INPUT_DIM = "VAE input dim"
-    
-    def __init__(self, input_dim=1,  bottleneck_size = LATENT_DIM):
+    def __init__(self, config: VAEMaskConfig, input_dim):
         super().__init__()
 
+        # TODO: take the layers from the config
         layers = [90, 60, 30]
         sens_attr_nr = 1
         
@@ -67,7 +28,7 @@ class VAE(Module):
             nn.LeakyReLU()
         )
         self._decoder = nn.Sequential(
-            nn.Linear(bottleneck_size, layers[2]),
+            nn.Linear(config.latent_dim, layers[2]),
             nn.LeakyReLU(),
             nn.Linear(layers[2], layers[1]),
             nn.LeakyReLU(),
@@ -76,8 +37,8 @@ class VAE(Module):
             nn.Linear(layers[0], input_dim),
         )
 
-        self.fc_mu = nn.Linear(layers[2], bottleneck_size - sens_attr_nr )
-        self.fc_std = nn.Linear(layers[2], bottleneck_size - sens_attr_nr)
+        self.fc_mu = nn.Linear(layers[2], config.latent_dim - sens_attr_nr )
+        self.fc_std = nn.Linear(layers[2], config.latent_dim - sens_attr_nr)
         #end_solution
 
     def add_attr_col(self, x, attr_col):
@@ -128,14 +89,16 @@ class VAE(Module):
         decoded_image = self.decoder(full_z)
         #end_solution
 
-        return decoded_image
+        return decoded_image, mu, std, z, attr_col
+
 
 
 class Discriminator(nn.Module):
-    def __init__(self):
+    def __init__(self, config: Dict):
+        # TODO: take the layers from the config
         super(Discriminator, self).__init__()
         self._fwd = nn.Sequential(
-            nn.Linear(LATENT_DIM-1, 30),
+            nn.Linear(config['latent_dim']-1, 30),
             nn.LeakyReLU(),
             nn.Linear(30, 30),
             nn.LeakyReLU(),
@@ -145,4 +108,3 @@ class Discriminator(nn.Module):
 
     def forward(self, x):
         return self._fwd(x)
-    

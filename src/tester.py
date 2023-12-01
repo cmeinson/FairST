@@ -4,7 +4,7 @@ import numpy as np
 import collections
 from typing import List, Dict, Any
 
-from .ml_models import FairBalanceModel, FairMaskModel, FypMaskModel, BaseModel, ReweighingModel, Model
+from .ml_models import FairBalanceModel, FairMaskModel, VAEMaskModel, BaseModel, ReweighingModel, Model
 from .data_classes import AdultData, CompasData, GermanData, MEPSData, DummyData, Data
 from .metrics import Metrics, MetricException
 from .utils import TestConfig
@@ -156,7 +156,7 @@ class Tester:
         elif name == self.FAIRMASK:
             return FairMaskModel(config, self._get_base_model(config))
         elif name == self.FYP_VAE:
-            return FypMaskModel(config, self._get_base_model(config))
+            return VAEMaskModel(config, self._get_base_model(config))
         else:
             raise RuntimeError("Incorrect method name ", name)
         

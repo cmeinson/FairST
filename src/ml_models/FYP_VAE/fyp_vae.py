@@ -7,17 +7,18 @@ from torch.nn import Module
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
-from .auto_encoder import *
+from .models import *
+from .losses import *
 from ...utils import TestConfig
+from .configs import VAEMaskConfig
+
+
 
 
 # TODO: no longer attr col last
 
-class FypMaskModel(Model):
-    USE_LATENT_S_ADV = "latent stpace sensitive attr discr TODO"
-    USE_FLIPPED_ADV = "flipped sens attr adv TODO"
-    USE_KL_DISCR = "KL loss between the distributions of z for all samples with s=0 and s=1"
-    USE_FAIRNESS_VEC = "Y direction discr"
+class VAEMaskModel(Model):
+    VAE_MASK_CONFIG = "my model config"
 
     def __init__(self, config: TestConfig, base_model: Model) -> None:
         """Idk does not really do much yet I think:)
@@ -29,6 +30,7 @@ class FypMaskModel(Model):
         self._model = base_model
         self._mask_models = {}
         self._column_names = None
+        self._vm_config = config.other[self.VAE_MASK_CONFIG]
 
 
     def fit(self, X: pd.DataFrame, y: np.array):
@@ -41,6 +43,8 @@ class FypMaskModel(Model):
         """
         self._column_names = X.columns.tolist()
         self._config.other[VAE.INPUT_DIM] = len(self._column_names)
+
+        # TODO: SENS ATTRIBUTE
 
 
         # Build the mask_model for predicting each protected attribute
@@ -63,8 +67,6 @@ class FypMaskModel(Model):
         :return: predictions for each row of X
         :rtype: np.array
         """
-        sensitive = self._config.sensitive_attr
-
         X_masked = self._mask(torch.tensor(X.values, dtype=torch.float32)).detach().numpy()
         return self._model.predict(X_masked)
         
@@ -73,7 +75,7 @@ class FypMaskModel(Model):
         print(X)
         self._mask_models.eval()
         
-        X_out = self._mask_models.forward(X,1) # TODO PUT , 1  
+        X_out, *_ = self._mask_models.forward(X,1) # TODO PUT , 1  
         print("AFTER MASK")
         print(X_out)  
 
@@ -81,48 +83,49 @@ class FypMaskModel(Model):
     
     def train_ae(self, X, input_dim = 0, epochs = 1000):
         COUNTER = 0
-        ####################### init
-        model = VAE(input_dim)
-        discr = Discriminator()
-
+        model = VAE(self._vm_config, input_dim)
         optimizer = optim.Adam(model.parameters(), lr=0.007)#, momentum=0.3)
-        optimizer_discr = optim.Adam(discr.parameters(), lr=0.05)#, momentum=0.3)
-        
         model.train()
-        discr.train()
+
+        loss_models = [self._get_loss_model(name) for name in self._vm_config.lossed_used]
+        
         for epoch in range(epochs):
             COUNTER +=1
             # predict on main model -> mu, std, z, decoded
-            mu, std, attr_col = model.encoder(X) # keep og attr
-            z = model.reparametrization_trick(mu, std)
-            full_z = model.add_attr_col(z, attr_col)
-            outputs = model.decoder(full_z)
+            outputs, mu, std, z, attr_col = model.forward(X)
 
-            
-            ####################### train each loss model and get loss 
+            # train each loss model and get loss 
+            loss = self._get_total_loss(loss_models, X, outputs, mu, std, z, attr_col)
 
-            # discr loss predict -
-            optimizer_discr.zero_grad()
-            discr_pred = discr.forward(mu) 
-        
-            # calc discr LOSS
-            discr_loss = (nn.MSELoss()(discr_pred,attr_col.detach().clone()))
-
-            # trains discr
-            discr_loss.backward(retain_graph=True)
-            optimizer_discr.step()
-
-
-            # calculate total loss based on main model preds and discr LOSS
             optimizer.zero_grad()
-            loss = vae_loss(outputs, X, mu, std, discr_loss.detach().clone(), COUNTER)
             # train main model    
             loss.backward()
             optimizer.step()
 
             # print al used losses
             if COUNTER%50==0:
-                print(f'Epoch [{epoch+1}/{epochs}], Loss: {loss.item():.4f}, discr loss: {discr_loss.item():.4f}')
-        # TODO: should prob set em all to eval
+                print(f'Epoch [{epoch+1}/{epochs}], Loss: {loss.item():.4f}')
+        model.eval()
         return model
+    
+    def _get_total_loss(self, loss_models, original_X, decoded_X, mu, std, z, attr_col):
+        losses = []
+        for model in loss_models:
+            model.set_current_state(original_X, decoded_X, mu, std, z, attr_col)
+            losses.append(model.get_loss())
+
+        return sum(losses)
+
+    def _get_loss_model(self, name) -> LossModel:
+        classes = {
+            VAEMaskConfig.KL_DIV_LOSS: KLDivergenceLoss,
+            VAEMaskConfig.RECON_LOSS: ReconstructionLoss,
+            VAEMaskConfig.LATENT_S_ADV_LOSS: LatentDiscrLoss
+        }
+        
+        loss_config = self._vm_config.loss_configs[name]
+        return classes[name](loss_config)
+
+
+
         
