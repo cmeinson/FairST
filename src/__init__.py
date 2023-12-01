@@ -1,7 +1,5 @@
 from .tester import Tester
-from .ml_interface import BaseModel, Model
-from .fairbalance import FairBalanceModel
-from .fairmask import FairMaskModel
-from .FYP import FypModel
 from .metrics import Metrics
 from .utils import TestConfig
+from .data_classes import AdultData, CompasData, GermanData, MEPSData, DummyData, Data
+from .ml_models import FairBalanceModel, FairMaskModel, FypMaskModel, BaseModel, ReweighingModel, Model

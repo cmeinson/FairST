@@ -26,7 +26,7 @@ from keras.models import Sequential
 from keras.layers import Activation
 from keras.optimizers import SGD
 from keras.layers import Dense
-from .utils import TestConfig
+from ..utils import TestConfig
 
 class Model:
     # NB: if ur implementation of the class takes more than one file pls put it all into sub folder

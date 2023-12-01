@@ -2,20 +2,11 @@ from os import path
 import pandas as pd
 import numpy as np
 import collections
-from .data_interface import Data, DummyData
-from .adult_data import AdultData
-from .compas_data import CompasData
-from .adult_data import AdultData
-from .meps_data import MEPSData
-from .german_data import GermanData
-from .ml_interface import Model, BaseModel
-from .metrics import Metrics, MetricException
 from typing import List, Dict, Any
-from .fairbalance import FairBalanceModel
-from .fairmask import FairMaskModel
-from .FYP import FypModel
-from .fyp_vae import FypMaskModel
-from .reweighing import ReweighingModel
+
+from .ml_models import FairBalanceModel, FairMaskModel, FypMaskModel, BaseModel, ReweighingModel, Model
+from .data_classes import AdultData, CompasData, GermanData, MEPSData, DummyData, Data
+from .metrics import Metrics, MetricException
 from .utils import TestConfig
 from .result_writer import ResultsWriter
 
@@ -155,10 +146,9 @@ class Tester:
         return data
 
     def _get_model(self, config: TestConfig) -> Model:
-        # TODO: pass base model where needed through a func that trains it if needed
         name = config.bias_mit
         if name == self.BASE_ML:
-            return self._get_base_model(config) # TODO: check if base model alr trained for the preproc
+            return self._get_base_model(config)
         elif name == self.FAIRBALANCE:
             return FairBalanceModel(config)
         elif name == self.REWEIGHING:

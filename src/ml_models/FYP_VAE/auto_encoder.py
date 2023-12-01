@@ -50,6 +50,7 @@ def vae_loss(prediction, target, mu, std, discr_loss = None, COUNTER = 0):
 
 
 class VAE(Module):
+    INPUT_DIM = "VAE input dim"
     
     def __init__(self, input_dim=1,  bottleneck_size = LATENT_DIM):
         super().__init__()
@@ -145,39 +146,3 @@ class Discriminator(nn.Module):
     def forward(self, x):
         return self._fwd(x)
     
-def train_ae(X, input_dim, epochs = 1000):
-    COUNTER = 0
-    model = VAE(input_dim)
-    discr = Discriminator()
-
-    optimizer = optim.Adam(model.parameters(), lr=0.007)#, momentum=0.3)
-    optimizer_discr = optim.Adam(discr.parameters(), lr=0.05)#, momentum=0.3)
-    
-    model.train()
-    discr.train()
-    for epoch in range(epochs):
-        COUNTER +=1
-        mu, std, attr_col = model.encoder(X) # keep og attr
-        z = model.reparametrization_trick(mu, std)
-        full_z = model.add_attr_col(z, attr_col)
-        outputs = model.decoder(full_z)
-
-        
-        optimizer_discr.zero_grad()
-        discr_pred = discr.forward(mu) 
-     
-        #discr_loss = F.binary_cross_entropy((discr_pred), attr_col, reduction="mean") # we are aiming to increase this loss
-        discr_loss = (nn.MSELoss()(discr_pred,attr_col.detach().clone()))
-
-        discr_loss.backward(retain_graph=True)
-        optimizer_discr.step()
-
-
-        optimizer.zero_grad()
-        loss = vae_loss(outputs, X, mu, std, discr_loss.detach().clone(), COUNTER)
-        #print(loss)
-        loss.backward()
-        optimizer.step()
-        if COUNTER%50==0:
-            print(f'Epoch [{epoch+1}/{epochs}], Loss: {loss.item():.4f}, discr loss: {discr_loss.item():.4f}')
-    return model
