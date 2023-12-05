@@ -15,9 +15,12 @@ from .configs import VAEMaskConfig
 
 
 # TODO: no longer attr col last
+PRINT_FREQ = 50
 
 class VAEMaskModel(Model):
     VAE_MASK_CONFIG = "my model config"
+
+    COUNTER = 0
 
     def __init__(self, config: TestConfig, base_model: Model) -> None:
         """Idk does not really do much yet I think:)
@@ -42,20 +45,14 @@ class VAEMaskModel(Model):
         """
         self._column_names = X.columns.tolist()
         input_dim = len(self._column_names)
+        sens_column_ids = [self._column_names.index(col) for col in self._config.sensitive_attr]
 
-        # TODO: SENS ATTRIBUTE
-        sens_column_ids = [0] # TODO !!!!!
         self._vm_config.set_input_dim_and_sens_column_ids(input_dim, sens_column_ids)
-
 
         # Build the mask_model for predicting each protected attribute
         tensor = torch.tensor(X.values, dtype=torch.float32)
-        self._mask_models = self.train_vae(tensor)
-            
-        # Build the model for the actual prediction
-        #self._model = self._get_model(method, my_other)
-        #self._model.fit(X, y)
-             
+        self._mask_models = self.train_vae(tensor, self._vm_config.epochs)
+
 
     def predict(self, X: pd.DataFrame) -> np.array:
         """ Uses the previously trained ML model
@@ -82,16 +79,16 @@ class VAEMaskModel(Model):
 
         return X_out
     
-    def train_vae(self, X ,epochs = 100):
-        COUNTER = 0
+    def train_vae(self, X: Tensor, epochs = 500):
+        self.COUNTER = 0
         model = VAE(self._vm_config)
-        optimizer = optim.Adam(model.parameters(), lr=0.007)#, momentum=0.3)
+        optimizer = optim.Adam(model.parameters(), lr=self._vm_config.lr)#, momentum=0.3)
         model.train()
 
         loss_models = [self._get_loss_model(name) for name in self._vm_config.lossed_used]
         
         for epoch in range(epochs):
-            COUNTER +=1
+            self.COUNTER +=1
             # predict on main model -> mu, std, z, decoded
             outputs, mu, std, z, attr_cols = model.forward(X)
 
@@ -100,11 +97,11 @@ class VAEMaskModel(Model):
 
             optimizer.zero_grad()
             # train main model    
-            loss.backward()
+            loss.backward() 
             optimizer.step()
 
             # print al used losses
-            if COUNTER%50==0:
+            if self.COUNTER%PRINT_FREQ==0:
                 print(f'Epoch [{epoch+1}/{epochs}], Loss: {loss.item():.4f}')
         model.eval()
         return model
@@ -114,6 +111,8 @@ class VAEMaskModel(Model):
         for model in loss_models:
             model.set_current_state(original_X, decoded_X, mu, std, z, attr_cols)
             losses.append(model.get_loss())
+            if self.COUNTER%PRINT_FREQ==0:
+                print('------------------',model,'loss:  ', losses[-1])
 
         return sum(losses)
 

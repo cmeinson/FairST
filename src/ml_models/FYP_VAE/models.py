@@ -21,9 +21,7 @@ class VAE(Module):
 
         layers = [input_dim] + list(config.vae_layers)
 
-        print("vae LAYERS", layers, config.latent_dim - sens_attr_nr, sens_attr_nr)
-
-        
+       
         # Encoder input dim -> last layer size
         enc_layers = []
         for i in range(len(layers)-1):
@@ -44,18 +42,13 @@ class VAE(Module):
         self.fc_std = nn.Linear(layers[-1], config.latent_dim - sens_attr_nr)
         #end_solution
 
-    def add_attr_cols(self, x, attr_cols: List[Tensor]):
-        return torch.cat([x] + attr_cols, dim=1)
-        x_np = x.detach().numpy()
-        out = np.column_stack((x_np, attr_cols))  
-        #print("latent space", torch.tensor(out, dtype=torch.float32))
-        return torch.tensor(out, dtype=torch.float32)
+    def add_attr_cols(self, X, attr_cols: List[Tensor]):
+        return torch.cat([X] + attr_cols, dim=1)
 
     
     def encoder(self, image, attrs = None):
         # keeps the og attr if attr not specifies
         #print("og en", image)
-        # TODO: will probably have to pass the indxs of sensitive columns
         attr_cols = [image[:, i, None] for i in self._sens_column_ids]
         if attrs:
             for i in range(len(attr_cols)):

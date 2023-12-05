@@ -30,6 +30,8 @@ class AdultData(Data):
         dataset['Probability'] = np.where(dataset['Probability'] == '<=50K', 0, 1)
 
         # Discretize age
+        # TODO: WHY
+        """
         dataset['age'] = np.where(dataset['age'] >= 70, 70, dataset['age'])
         dataset['age'] = np.where((dataset['age'] >= 60 ) & (dataset['age'] < 70), 60, dataset['age'])
         dataset['age'] = np.where((dataset['age'] >= 50 ) & (dataset['age'] < 60), 50, dataset['age'])
@@ -38,6 +40,7 @@ class AdultData(Data):
         dataset['age'] = np.where((dataset['age'] >= 20 ) & (dataset['age'] < 30), 20, dataset['age'])
         dataset['age'] = np.where((dataset['age'] >= 10 ) & (dataset['age'] < 10), 10, dataset['age'])
         dataset['age'] = np.where(dataset['age'] < 10, 0, dataset['age'])
+        """
         return dataset
 
     def _get_columns(self, dataset: pd.DataFrame, preproc: str) -> pd.DataFrame:
@@ -62,7 +65,7 @@ class AdultData(Data):
         return X.drop(['fnlwgt', 'education', 'Probability'], axis=1)
     
     def my_columns(self, X):
-        return X.drop(['fnlwgt',  'Probability'], axis=1)
+        return X.drop(['fnlwgt', 'education', 'native-country', 'Probability'], axis=1)
         # TODO: ADD MORE COLUMNS ONCE WE HAVE ONE HOT
         #return X.drop(['workclass', 'fnlwgt', 'education', 'marital-status', 'occupation', 'relationship', 'native-country', 'Probability'], axis=1)
 

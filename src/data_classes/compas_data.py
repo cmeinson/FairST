@@ -45,7 +45,6 @@ class CompasData(Data):
         #return X[["sex", "age_cat", "race", "priors_count", "c_charge_degree", "decile_score.1", "priors_count.1"]]
 
                                                                                    
-
     def fairbalance_columns(self, X):
         return X[['sex', 'age', 'age_cat', 'race',
                   'juv_fel_count', 'juv_misd_count', 'juv_other_count',

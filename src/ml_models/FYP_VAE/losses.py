@@ -9,9 +9,6 @@ import torch.nn.functional as F
 from .models import *
 
 
-LATENT_DIM = 10
-
-
 class LossModel:
     def __init__(self, loss_config: Dict) -> None:
         # init model, optimiser, and set it to train()
@@ -38,10 +35,10 @@ class KLDivergenceLoss(LossModel):
 
 class ReconstructionLoss(LossModel):
     def get_loss(self):
-        #recon_loss =nn.MSELoss()(prediction,target)
-        #recon_loss = F.smooth_l1_loss(prediction, target)
-        #recon_loss = F.binary_cross_entropy(prediction, target, reduction="mean")
-        return F.smooth_l1_loss(self.decoded_X, self.original_X) * self._loss_config["weight"]
+        #recon_loss = nn.MSELoss()(self.decoded_X, self.original_X)
+        #recon_loss = F.binary_cross_entropy(self.decoded_X, self.original_X, reduction="mean")
+        recon_loss = F.smooth_l1_loss(self.decoded_X, self.original_X)
+        return recon_loss * self._loss_config["weight"]
 
 
 
@@ -61,7 +58,7 @@ class LatentDiscrLoss(LossModel):
     
         # calc discr LOSS
         # TODO: !!!!!!!!!!!!!!!! only predicts first attr
-        discr_loss = (nn.MSELoss()(discr_pred,self.attr_col[0].detach().clone()))
+        discr_loss = (nn.MSELoss()(discr_pred, self.attr_col[0].detach().clone()))
 
         # trains discr
         discr_loss.backward(retain_graph=True)
