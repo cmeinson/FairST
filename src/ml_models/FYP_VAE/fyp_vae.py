@@ -51,7 +51,7 @@ class VAEMaskModel(Model):
 
         # Build the mask_model for predicting each protected attribute
         tensor = torch.tensor(X.values, dtype=torch.float32)
-        self._mask_models = self.train_vae(tensor, self._vm_config.epochs)
+        self._mask_models = self.train_vae(tensor, y, self._vm_config.epochs)
 
 
     def predict(self, X: pd.DataFrame) -> np.array:
@@ -79,7 +79,7 @@ class VAEMaskModel(Model):
 
         return X_out
     
-    def train_vae(self, X: Tensor, epochs = 500):
+    def train_vae(self, X: Tensor, y: np.array, epochs = 500):
         self.COUNTER = 0
         model = VAE(self._vm_config)
         optimizer = optim.Adam(model.parameters(), lr=self._vm_config.lr)#, momentum=0.3)
@@ -93,7 +93,7 @@ class VAEMaskModel(Model):
             outputs, mu, std, z, attr_cols = model.forward(X)
 
             # train each loss model and get loss 
-            loss = self._get_total_loss(loss_models, X, outputs, mu, std, z, attr_cols)
+            loss = self._get_total_loss(loss_models, X, outputs, mu, std, z, attr_cols, model, y)
 
             optimizer.zero_grad()
             # train main model    
@@ -106,10 +106,10 @@ class VAEMaskModel(Model):
         model.eval()
         return model
     
-    def _get_total_loss(self, loss_models, original_X, decoded_X, mu, std, z, attr_cols):
+    def _get_total_loss(self, loss_models, original_X, decoded_X, mu, std, z, attr_cols, model, y):
         losses = []
         for model in loss_models:
-            model.set_current_state(original_X, decoded_X, mu, std, z, attr_cols)
+            model.set_current_state(original_X, decoded_X, mu, std, z, attr_cols, model, y)
             losses.append(model.get_loss())
             if self.COUNTER%PRINT_FREQ==0:
                 print('------------------',model,'loss:  ', losses[-1])
@@ -120,7 +120,9 @@ class VAEMaskModel(Model):
         classes = {
             VAEMaskConfig.KL_DIV_LOSS: KLDivergenceLoss,
             VAEMaskConfig.RECON_LOSS: ReconstructionLoss,
-            VAEMaskConfig.LATENT_S_ADV_LOSS: LatentDiscrLoss
+            VAEMaskConfig.LATENT_S_ADV_LOSS: LatentDiscrLoss,
+            VAEMaskConfig.FLIPPED_ADV_LOSS: FlippedDiscrLoss,
+            VAEMaskConfig.KL_SENSITIVE_LOSS: SensitiveKLLoss
         }
         
         loss_config = self._vm_config.loss_configs[name]

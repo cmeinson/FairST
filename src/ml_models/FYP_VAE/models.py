@@ -85,7 +85,7 @@ class VAE(Module):
 class Discriminator(nn.Module):
     def __init__(self, config: Dict):
         super(Discriminator, self).__init__()
-        layers = [config['latent_dim']-1] + list(config['layers'])
+        layers = [config['input_dim']-1] + list(config['layers'])
         print("DISCR LAYERS", layers)
 
         # (latent dim)-(no of sens cols)  ->  1

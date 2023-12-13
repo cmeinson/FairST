@@ -3,6 +3,8 @@ class VAEMaskConfig:
     KL_DIV_LOSS = "KL divergence loss"
     RECON_LOSS = "Reconstruction loss"
     LATENT_S_ADV_LOSS = "loss from an adversaty trying to predict z->s"
+    FLIPPED_ADV_LOSS = "loss adv predicting if sensitive attr was flipped"
+    KL_SENSITIVE_LOSS = "kl div between subgroups in latents space"
     #def __init__(self, epochs = 500, latent_dim = 10, vae_layers = (90, 60, 30), losses_used = [KL_DIV_LOSS, RECON_LOSS, LATENT_S_ADV_LOSS]):
     def __init__(self, epochs = 500, latent_dim = 10, vae_layers = (75, 60, 45, 30), lr = 0.007, losses_used = [KL_DIV_LOSS, RECON_LOSS, LATENT_S_ADV_LOSS]):
         self.epochs = epochs
@@ -16,13 +18,17 @@ class VAEMaskConfig:
         for loss in losses_used:
             self.config_loss(loss)
 
-    def config_loss(self, loss_name, *kwargs):
+    def config_loss(self, loss_name, **kwargs):
         if loss_name == self.KL_DIV_LOSS:
-            self._config_KL_div(*kwargs)
+            self._config_KL_div(**kwargs)
         elif loss_name == self.RECON_LOSS:
-            self._config_recon(*kwargs)
+            self._config_recon(**kwargs)
         elif loss_name == self.LATENT_S_ADV_LOSS:
-            self._config_latent_s(*kwargs)
+            self._config_latent_s(**kwargs)
+        elif loss_name == self.FLIPPED_ADV_LOSS:
+            self._config_flipped(**kwargs)
+        elif loss_name == self.KL_SENSITIVE_LOSS:
+            self._config_KL_sens(**kwargs)
 
     def set_input_dim_and_sens_column_ids(self, input_dim, ids):
         print("input dim:", input_dim)
@@ -36,6 +42,7 @@ class VAEMaskConfig:
         self.loss_configs[self.KL_DIV_LOSS] = {
             "weight": weight
         }
+        print(self.loss_configs[self.KL_DIV_LOSS])
 
     #def _config_recon(self, weight=1):
     def _config_recon(self, weight=12):
@@ -49,8 +56,27 @@ class VAEMaskConfig:
             "lr": lr,
             "optimizer": optimizer,
             "layers": layers,
-            "latent_dim": self.latent_dim
+            "input_dim": self.latent_dim,
         }
+        print(self.loss_configs[self.LATENT_S_ADV_LOSS])
+
+    def _config_flipped(self, weight=1, lr=0.05, optimizer="Adam", layers=(30,30)):
+        self.loss_configs[self.FLIPPED_ADV_LOSS] = {
+            "weight": weight,
+            "lr": lr,
+            "optimizer": optimizer,
+            "layers": layers,
+            "input_dim": self.input_dim,
+            "sens_col_ids" : self.sens_column_ids
+        }
+        print(self.loss_configs[self.FLIPPED_ADV_LOSS])
+
+    def _config_KL_sens(self, weight=0.005):
+        self.loss_configs[self.KL_SENSITIVE_LOSS] = {
+            "weight": weight,
+            "sens_col_ids" : self.sens_column_ids
+        }
+        print(self.loss_configs[self.KL_SENSITIVE_LOSS])
 
     
 
