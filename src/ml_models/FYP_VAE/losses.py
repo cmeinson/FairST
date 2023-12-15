@@ -8,7 +8,15 @@ import torch.optim as optim
 import torch.nn.functional as F
 from .models import *
 from itertools import combinations
+from itertools import product
 
+
+def print_grad(loss):
+    current_grad_fn = loss.grad_fn
+    while current_grad_fn is not None:
+        print(current_grad_fn)
+        current_grad_fn = current_grad_fn.next_functions[0][0] if current_grad_fn.next_functions else None
+    
 
 
 class LossModel:
@@ -16,14 +24,15 @@ class LossModel:
         # init model, optimiser, and set it to train()
         self._loss_config = loss_config
 
-    def set_current_state(self, original_X, decoded_X, mu, std, z, attr_col, model, y):
+    def set_current_state(self, original_X, decoded_X, mu, std, z, attr_cols, vae_model, y):
         self.original_X = original_X
         self.decoded_X = decoded_X
         self.mu = mu
         self.std = std
         self.z = z
-        self.attr_col = attr_col
-        self.model = model
+        self.attr_cols = attr_cols
+        self.attr_tensor = torch.stack([torch.squeeze(col) for col in attr_cols], dim =1)
+        self.vae_model = vae_model
         self.y = y
 
     def get_loss(self):
@@ -31,11 +40,11 @@ class LossModel:
         raise NotImplementedError
     
     def get_subgroup_ids(self):
-        subgroups = set(tuple(row.tolist()) for row in self.attr_col)
-        indices_of_subgroups = {comb: [] for comb in subgroups}
-        for idx, row in enumerate(self.attr_col):
-            indices_of_subgroups[tuple(row.tolist())].append(idx)
-        return indices_of_subgroups
+        subgroups, _ = torch.unique(self.attr_tensor , dim=0, return_inverse=True)     
+        indices_of_subgroups = {tuple(comb.numpy()): [] for comb in subgroups}
+        for idx, row in enumerate(self.attr_tensor):
+            indices_of_subgroups[tuple(row.numpy())].append(idx)
+        return indices_of_subgroups.values()
 
 
 
@@ -55,7 +64,10 @@ class ReconstructionLoss(LossModel):
 
 
 class LatentDiscrLoss(LossModel):
+    # https://discuss.pytorch.org/t/runtimeerror-one-of-the-variables-needed-for-gradient-computation-has-been-modified-by-an-inplace-operation-torch-floattensor-64-1-which-is-output-0-of-asstridedbackward0-is-at-version-3-expected-version-2-instead-hint-the-backtrace-further-a/171826
+    # could be that it is tensors left from previous it???
     def __init__(self, loss_config) -> None:
+
         self._loss_config = loss_config # TODO: init through super clas?
 
         self.discr = Discriminator(loss_config)
@@ -64,20 +76,31 @@ class LatentDiscrLoss(LossModel):
         self.discr.train()
     
     def get_loss(self):
-        # discr loss predict -
-        self.optimizer.zero_grad()
-        discr_pred =  self.discr.forward(self.mu) 
-    
-        # calc discr LOSS
         # TODO: !!!!!!!!!!!!!!!! only predicts first attr
-        labels = self.attr_col[0].detach().clone()
-        discr_loss = (nn.MSELoss()(discr_pred, labels))
+        labels = self.attr_cols[0].detach().clone()
+
+        # discr loss predict -
+        discr_pred = self.discr.forward(self.mu.detach().clone()) # !!!!!!!!!?????
+        discr_loss = (nn.MSELoss()(discr_pred, labels)) 
 
         # trains discr
-        discr_loss.backward(retain_graph=True)
+        self.optimizer.zero_grad()
+        discr_loss.backward()
         self.optimizer.step()
 
-        loss = discr_loss.detach().clone()
+        # NOTE: trying to avoid copy()
+        discr_pred = self.discr.forward(self.mu) # !!!!!!!!!?????
+        loss = (nn.MSELoss()(discr_pred, labels))
+        #loss = discr_loss.detach().clone() # this breaks it
+
+        # disciminator loss:
+        # 0   - dirctiminator can guess perfectly guess
+        # 0.5 - discriminator no better than a random guess - perfect
+        # loss:
+        # 1/(0)-2 = infinity
+        # 1/(0.1)-2 = 8
+        # 1/(0.25)-2 = 2
+        # 1/(0.5)-2 = 0 
         return torch.clamp(torch.pow(loss, -1)-2, min=0) * self._loss_config["weight"]
     
 
@@ -92,24 +115,36 @@ class FlippedDiscrLoss(LossModel):
     
     def get_loss(self):
         # discr loss predict -
-        self.optimizer.zero_grad()
+        
         # flip attr cols
         # run model on fdlipped cols
         # predict on og attr aim label 0
         # predict on flipped cols aim label 1
 
-        og_attr_pred = self.discr.forward(self.decoded_X) 
-        flip_attr_pred = self.discr.forward(self.get_flipped_attrs_decoded) 
-        # calc discr LOSS
-        og_attr_loss = (nn.MSELoss()(og_attr_pred, torch.zeros_like(og_attr_pred)))
-        flip_attr_loss = (nn.MSELoss()(flip_attr_pred, torch.ones_like(og_attr_pred)))
-        discr_loss = og_attr_loss + flip_attr_loss
+        discr_loss = self._loss(self.decoded_X.detach().clone()) 
+
         # trains discr
-        discr_loss.backward(retain_graph=True)
+
+        self.optimizer.zero_grad()
+        discr_loss.backward()
         self.optimizer.step()
 
-        loss = discr_loss.detach().clone()
-        return torch.clamp(torch.pow(loss, -1)-2, min=0) * self._loss_config["weight"]
+        loss = self._loss(self.decoded_X)
+        return torch.clamp(torch.pow(loss, -1)-2, min=0) * self._loss_config["weight"] 
+    
+    def _loss(self, decoded_X):
+        #print("before flip")
+        #print(decoded_X)
+        og_attr_pred = self.discr.forward(decoded_X) 
+        flip_attr_pred = self.discr.forward(self.get_flipped_attrs_decoded()) 
+        # calc discr LOSS
+        #print("og preds ", og_attr_pred)
+        #print("flipped  ", flip_attr_pred)
+        og_attr_loss = (nn.MSELoss()(og_attr_pred, torch.zeros_like(og_attr_pred)))
+        flip_attr_loss = (nn.MSELoss()(flip_attr_pred, torch.ones_like(og_attr_pred)))
+        #print("disrc loss", og_attr_loss,flip_attr_loss, (og_attr_loss + flip_attr_loss) / 2 )
+        return (flip_attr_loss + og_attr_loss) / 2
+
         
     def get_flipped_attrs_decoded(self):
         X = self.original_X.clone().detach()
@@ -117,14 +152,15 @@ class FlippedDiscrLoss(LossModel):
         # TODO: !!!!!!!!!!!!!!!! only predicts first attr
         i = self._loss_config["sens_col_ids"][0]
         X[:, i] = 1 - X[:, i]
-        outputs, _, _, _, _ = self.model.forward(X)
-        return outputs
+        outputs, _, _, _, _ = self.vae_model.forward(X)
+        #print("after flip")
+        #print(outputs)
+        return outputs.detach().clone()
 
 
 
 class SensitiveKLLoss(LossModel):
     def get_loss(self):
-        kls = []
         # TODO: for future, maybe weigh the variancc
         # TODO: with multiple attrs will need to make it intersectional???/ tbh not an expensive computation so can just do it pairwise
         # for each dimention and each subgroup get mean and variance
@@ -132,19 +168,28 @@ class SensitiveKLLoss(LossModel):
         subgroup_mus = []
         subgroup_stds = []
 
+        #print('z')
+        #print_grad(self.z)
+
+        # TODO: why this not work from z!?!?!?!?!?!?!
         for ids in subgroup_ids:
-            subgroup_mus.append(torch.mean(self.z[ids], dim=0))
-            subgroup_stds.append(torch.std(self.z[ids], dim=0))
+            subgroup_mus.append(torch.mean(self.mu[ids], dim=0))
+            subgroup_stds.append(torch.std(self.mu[ids], dim=0))
         
         pairs = list(combinations(range(len(subgroup_ids)), 2))
+        total = 0
         for p, q in pairs:
             kl = self.kl_div(subgroup_mus[p], subgroup_stds[p], subgroup_mus[q], subgroup_stds[q])
-            kls.append(kl)
+            total += kl
 
-        return np.mean(kls)
+        #print('FN')
+        #print_grad(total)
+        return total / len(pairs)
 
     def kl_div(self, p_mu, p_std, q_mu, q_std):
-        return np.log(q_std/p_std) + (p_std**2 + (p_mu - q_mu)**2) / (2*(q_std**2)) - 0.5
+        kls = torch.log(q_std/p_std) + (p_std**2 + (p_mu - q_mu)**2) / (2*(q_std**2)) - 0.5
+        #print("KLS", kls)
+        return torch.mean(kls)
     
 
 class PositiveVectorLoss(LossModel):
@@ -157,24 +202,27 @@ class PositiveVectorLoss(LossModel):
         vectors = self.get_vectors()
         losses = []
 
-        pairs = list(combinations(vectors), 2)
+        pairs = list(combinations(vectors, 2))
         for v, u in pairs:
-            losses.append(1 - F.cosine_similarity(v, u, dim=0).item())
+            similarity = F.cosine_similarity(v, u, dim=0)
+            # need to clmt due to floating point issue in the torch library
+            losses.append(torch.clamp(1 - similarity, min=0))
 
-        return torch.mean(losses)   
+        tensor_loss = torch.stack(losses)
+        return  torch.mean(tensor_loss, dim=0) 
 
 
     def get_vectors(self):
         subgroup_ids = self.get_subgroup_ids()
-        pos_label_ids = set(np.nonzero(self.y)) 
+        pos_label_ids = set(np.nonzero(self.y)[0]) 
 
         vectors = []
         for ids in subgroup_ids:
             subgroup_pos_ids = set(ids) | pos_label_ids
             subgroup_neg_ids = set(ids) - pos_label_ids
 
-            pos_mean = torch.mean(self.z[subgroup_pos_ids], dim=0)
-            neg_mean = torch.mean(self.z[subgroup_neg_ids], dim=0)
+            pos_mean = torch.mean(self.mu[list(subgroup_pos_ids)], dim=0)
+            neg_mean = torch.mean(self.mu[list(subgroup_neg_ids)], dim=0)
 
             vec = pos_mean - neg_mean
             vectors.append(vec / torch.norm(vec))

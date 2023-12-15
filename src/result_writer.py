@@ -4,6 +4,7 @@ import pandas as pd
 from .utils import TestConfig
 import numpy as np
 from os import path
+from .ml_models import  VAEMaskModel
 
 ALTERNATIVE_FILE_NAME_END = "_new"
 

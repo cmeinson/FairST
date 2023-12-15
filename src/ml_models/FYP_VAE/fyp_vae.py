@@ -102,14 +102,14 @@ class VAEMaskModel(Model):
 
             # print al used losses
             if self.COUNTER%PRINT_FREQ==0:
-                print(f'Epoch [{epoch+1}/{epochs}], Loss: {loss.item():.4f}')
+                print(f'Epoch [{epoch+1}/{epochs}], Loss: {loss.item():.7f}')
         model.eval()
         return model
     
-    def _get_total_loss(self, loss_models, original_X, decoded_X, mu, std, z, attr_cols, model, y):
+    def _get_total_loss(self, loss_models, original_X, decoded_X, mu, std, z, attr_cols, vae_model, y):
         losses = []
         for model in loss_models:
-            model.set_current_state(original_X, decoded_X, mu, std, z, attr_cols, model, y)
+            model.set_current_state(original_X, decoded_X, mu, std, z, attr_cols, vae_model, y)
             losses.append(model.get_loss())
             if self.COUNTER%PRINT_FREQ==0:
                 print('------------------',model,'loss:  ', losses[-1])
@@ -122,7 +122,8 @@ class VAEMaskModel(Model):
             VAEMaskConfig.RECON_LOSS: ReconstructionLoss,
             VAEMaskConfig.LATENT_S_ADV_LOSS: LatentDiscrLoss,
             VAEMaskConfig.FLIPPED_ADV_LOSS: FlippedDiscrLoss,
-            VAEMaskConfig.KL_SENSITIVE_LOSS: SensitiveKLLoss
+            VAEMaskConfig.KL_SENSITIVE_LOSS: SensitiveKLLoss,
+            VAEMaskConfig.POS_VECTOR_LOSS: PositiveVectorLoss
         }
         
         loss_config = self._vm_config.loss_configs[name]

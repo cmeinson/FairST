@@ -8,6 +8,7 @@ import torch.optim as optim
 import torch.nn.functional as F
 from torch import Tensor
 
+
 from .configs import VAEMaskConfig
 
 
@@ -85,7 +86,7 @@ class VAE(Module):
 class Discriminator(nn.Module):
     def __init__(self, config: Dict):
         super(Discriminator, self).__init__()
-        layers = [config['input_dim']-1] + list(config['layers'])
+        layers = [config['input_dim']] + list(config['layers'])
         print("DISCR LAYERS", layers)
 
         # (latent dim)-(no of sens cols)  ->  1

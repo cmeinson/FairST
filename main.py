@@ -1,10 +1,11 @@
 import os
 from src import *
+import torch
 
-# Just an example for now
+torch.autograd.set_detect_anomaly(True)
 
-n_repetitions = 4
-results_filename = "x-post-refactor-prelims-"
+n_repetitions = 1
+results_filename = "new_losses_"
 other = {}
 results_file = os.path.join("results",results_filename +".csv")
 
@@ -16,19 +17,27 @@ metric_names = [Metrics.ACC, Metrics.PRE, Metrics.REC, Metrics.AOD, Metrics.EOD,
 
 epochs = 1200
 
-weights = [ 
-    [0.005, 12, 1],   # BB0, BE0
-    [0.005, 15, 1.5], # FD0, E20
-    [0.01 , 10, 1],   # D30, 850
-    [0.005, 10, 2]    # 940, B80
+losses = [
+    #[VAEMaskConfig.KL_DIV_LOSS], # 0.1 - 0.0001 x 0.01 # easy to optim
+    [VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS],  # 0.07 - 0.0169 x 10
+    [VAEMaskConfig.LATENT_S_ADV_LOSS,       VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS], # 0 - 10 ish x 0.1
+    [VAEMaskConfig.FLIPPED_ADV_LOSS,        VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS],   # 0 - 4 ish x 0.1
+    [VAEMaskConfig.KL_SENSITIVE_LOSS,       VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS], # 0.001 - 0.000 001 tho this is overdoing it x 100
+    [VAEMaskConfig.POS_VECTOR_LOSS,         VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS], # 0.000 002 - 0 x 1000
+    [VAEMaskConfig.KL_SENSITIVE_LOSS, VAEMaskConfig.POS_VECTOR_LOSS,        VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS],
+    [VAEMaskConfig.FLIPPED_ADV_LOSS,  VAEMaskConfig.KL_SENSITIVE_LOSS,      VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS],
+    [VAEMaskConfig.FLIPPED_ADV_LOSS,  VAEMaskConfig.POS_VECTOR_LOSS,        VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS],
+    [VAEMaskConfig.LATENT_S_ADV_LOSS, VAEMaskConfig.POS_VECTOR_LOSS,        VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS],
+    [VAEMaskConfig.LATENT_S_ADV_LOSS, VAEMaskConfig.KL_SENSITIVE_LOSS,      VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS],
+    [VAEMaskConfig.LATENT_S_ADV_LOSS, VAEMaskConfig.FLIPPED_ADV_LOSS,       VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS],
 ]
 
-for w in weights:
+for l in losses:
     for dataset, dim in zip(datasets, latent_dims):
-        fyp_config = VAEMaskConfig(epochs=epochs, latent_dim=dim, lr=0.007, losses_used=[ VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS, VAEMaskConfig.LATENT_S_ADV_LOSS])
-        fyp_config.config_loss(VAEMaskConfig.KL_DIV_LOSS, weight = w[0])
-        fyp_config.config_loss(VAEMaskConfig.RECON_LOSS, weight = w[1])
-        fyp_config.config_loss(VAEMaskConfig.LATENT_S_ADV_LOSS, weight = w[2])
+        fyp_config = VAEMaskConfig(epochs=epochs, latent_dim=dim, lr=0.007, losses_used=l)
+        #fyp_config.config_loss(VAEMaskConfig.KL_DIV_LOSS, weight = w[0])
+        #fyp_config.config_loss(VAEMaskConfig.RECON_LOSS, weight = w[1])
+        #fyp_config.config_loss(VAEMaskConfig.LATENT_S_ADV_LOSS, weight = w[2])
 
         for s in [["sex"], ["race"]]:
             mls = [
@@ -37,7 +46,6 @@ for w in weights:
                 TestConfig(Tester.FAIRMASK, Model.LG_R, Model.DT_R, sensitive_attr=s),
                 TestConfig(Tester.FAIRBALANCE, Model.LG_R, sensitive_attr=s),
                 TestConfig(Tester.REWEIGHING, Model.LG_R, sensitive_attr=s),
-                TestConfig(Tester.BASE_ML, Model.LG_R, sensitive_attr=s),   
 
                 TestConfig(Tester.FYP_VAE, Model.NN_old, other={VAEMaskModel.VAE_MASK_CONFIG: fyp_config}, sensitive_attr=s),
                 TestConfig(Tester.BASE_ML, Model.NN_old , sensitive_attr = s),   
@@ -49,10 +57,12 @@ for w in weights:
                 TestConfig(Tester.FAIRMASK, Model.RF_C, Model.DT_R, sensitive_attr=s),
                 TestConfig(Tester.FAIRBALANCE, Model.RF_C, sensitive_attr=s),
                 TestConfig(Tester.REWEIGHING, Model.RF_C, sensitive_attr=s),
-                TestConfig(Tester.BASE_ML, Model.RF_C, sensitive_attr=s),   
             ]
 
-            #mls = [  TestConfig(Tester.FYP_VAE, Model.LG_R, other={VAEMaskModel.VAE_MASK_CONFIG: fyp_config}, sensitive_attr=s) ]
+            mls = [  
+                TestConfig(Tester.FYP_VAE, Model.LG_R, other={VAEMaskModel.VAE_MASK_CONFIG: fyp_config}, sensitive_attr=s),
+                TestConfig(Tester.BASE_ML, Model.LG_R , sensitive_attr = s),   
+            ]
 
             # NOTE loss atm only single attr
 
@@ -66,6 +76,14 @@ for w in weights:
 
 # 2. removed native cnty from adult and age non discrete
 # 3. changed nn dims and the latent dim
+
+## ISSUES:
+"""
+the losses work only when calculated from mu not z
+how to train the adv losses while keeping torch itact
+
+"""
+
 
 ## RESULTS:
 """
@@ -107,3 +125,5 @@ race    acc loss 4%
 
 
 """
+
+
