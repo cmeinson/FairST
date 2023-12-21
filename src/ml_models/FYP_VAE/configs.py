@@ -2,12 +2,12 @@
 class VAEMaskConfig:
     KL_DIV_LOSS = "KL divergence loss"
     RECON_LOSS = "Reconstruction loss"
-    LATENT_S_ADV_LOSS = "loss from an adversaty trying to predict z->s"
-    FLIPPED_ADV_LOSS = "loss adv predicting if sensitive attr was flipped"
-    KL_SENSITIVE_LOSS = "kl div between subgroups in latents space"
-    POS_VECTOR_LOSS = "my brain child"
+    LATENT_S_ADV_LOSS = "z->s ADV loss"
+    FLIPPED_ADV_LOSS = "Flipped ADV loss"
+    KL_SENSITIVE_LOSS = "Sensitive KL loss"
+    POS_VECTOR_LOSS = "POS Y VEC loss"
     #def __init__(self, epochs = 500, latent_dim = 10, vae_layers = (90, 60, 30), losses_used = [KL_DIV_LOSS, RECON_LOSS, LATENT_S_ADV_LOSS]):
-    def __init__(self, epochs = 500, latent_dim = 10, vae_layers = (75, 60, 45, 30), lr = 0.007, losses_used = [KL_DIV_LOSS, RECON_LOSS, LATENT_S_ADV_LOSS]):
+    def __init__(self, epochs = 500, latent_dim = 10, vae_layers = (75, 60, 30, 15), lr = 0.007, losses_used = [KL_DIV_LOSS, RECON_LOSS, LATENT_S_ADV_LOSS]):
         self.epochs = epochs
         self.latent_dim = latent_dim
         self.vae_layers = vae_layers
@@ -57,7 +57,7 @@ class VAEMaskConfig:
         print(self.loss_configs[self.KL_DIV_LOSS])
 
     #def _config_recon(self, weight=12):
-    def _config_recon(self, weight=12):
+    def _config_recon(self, weight=15):
         self.loss_configs[self.RECON_LOSS] = {
             "weight": weight
         }
@@ -72,7 +72,7 @@ class VAEMaskConfig:
         }
         print(self.loss_configs[self.LATENT_S_ADV_LOSS])
 
-    def _config_flipped(self, weight=0.1, lr=0.05, optimizer="Adam", layers=(50,30,10)):
+    def _config_flipped(self, weight=0.01, lr=0.05, optimizer="Adam", layers=(50,30,10)):
         self.loss_configs[self.FLIPPED_ADV_LOSS] = {
             "weight": weight,
             "lr": lr,
@@ -84,14 +84,14 @@ class VAEMaskConfig:
         print(self.loss_configs[self.FLIPPED_ADV_LOSS])
 
     #def _config_KL_sens(self, weight=0.005):
-    def _config_KL_sens(self, weight=100):
+    def _config_KL_sens(self, weight=10000):
         self.loss_configs[self.KL_SENSITIVE_LOSS] = {
             "weight": weight,
             "sens_col_ids" : self.sens_column_ids
         }
         print(self.loss_configs[self.KL_SENSITIVE_LOSS])
 
-    def _config_pos_vec(self, weight=1000):
+    def _config_pos_vec(self, weight=1200000):
         self.loss_configs[self.POS_VECTOR_LOSS] = {
             "weight": weight
         }

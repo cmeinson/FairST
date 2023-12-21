@@ -5,6 +5,8 @@ from .utils import TestConfig
 import numpy as np
 from os import path
 from .ml_models import  VAEMaskModel
+import copy
+
 
 ALTERNATIVE_FILE_NAME_END = "_new"
 
@@ -33,6 +35,10 @@ class ResultsWriter:
     def _write_evals_to_file(self, test_config: TestConfig, evals: Dict[str, List[float]]):
         reps = np.size(list(evals.values())[0])
 
+        other = copy.deepcopy(test_config.other)
+        if VAEMaskModel.VAE_MASK_CONFIG in other:
+            other[VAEMaskModel.VAE_MASK_CONFIG] = str(other[VAEMaskModel.VAE_MASK_CONFIG])
+
         entry = {
             "time": [pd.Timestamp.now()],
             "reps": [reps],
@@ -41,7 +47,7 @@ class ResultsWriter:
             "ML method": [test_config.ml_method],
             "bias mit ML method": [test_config.bias_ml_method],
             "sensitive attrs": [test_config.sensitive_attr],
-            "other": [test_config.other],
+            "other": [other],
         }
         entry.update({key: [np.average(evals[key])] for key in evals})
         entry.update({"VAR|" + key: [np.var(evals[key])] for key in evals})
