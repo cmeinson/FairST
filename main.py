@@ -6,7 +6,7 @@ torch.autograd.set_detect_anomaly(True)
 
 n_repetitions = 4
 results_filename = 'test'
-results_filename = "new_losses_"
+results_filename = "new_losses_TEST"
 other = {}
 results_file = os.path.join("results",results_filename +".csv")
 
@@ -62,11 +62,10 @@ for l in losses:
             ]
 
             mls = [  
-                TestConfig(Tester.FYP_VAE, Model.LG_R, other={VAEMaskModel.VAE_MASK_CONFIG: fyp_config}, sensitive_attr=s),
-                TestConfig(Tester.BASE_ML, Model.LG_R , sensitive_attr = s),   
-                TestConfig(Tester.FAIRBALANCE, Model.LG_R, sensitive_attr=s),
-                TestConfig(Tester.REWEIGHING, Model.LG_R, sensitive_attr=s),
-                TestConfig(Tester.FAIRMASK, Model.LG_R, Model.DT_R, sensitive_attr=s),
+                TestConfig(Tester.FYP_VAE, Model.NN_old, other={VAEMaskModel.VAE_MASK_CONFIG: fyp_config}, sensitive_attr=s),
+                TestConfig(Tester.BASE_ML, Model.NN_old , sensitive_attr = s),   
+                TestConfig(Tester.FAIRMASK, Model.NN_old, Model.DT_R, sensitive_attr=s),
+                TestConfig(Tester.BASE_ML, Model.NN_old, sensitive_attr=s),  
             ]
 
             # NOTE loss atm only single attr
