@@ -142,7 +142,7 @@ class FlippedDiscrLoss(LossModel):
     """
     
     def __init__(self, loss_config) -> None:
-        self._loss_config = loss_config # TODO: init through super clas?
+        super().__init__(loss_config)
 
         self.discr = Discriminator(loss_config)
         # TODO: optim from config

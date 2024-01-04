@@ -16,6 +16,7 @@ class VAEMaskConfig:
         self.loss_configs = {}
         self.sens_column_ids = None
         self.input_dim = None
+        self.non_sens_latent_dim = None
         self.mask_values = mask_values # NOTE: if none, will use all mask values and weigh proportionally to training data subgroup sizes
         for loss in losses_used:
             self.config_loss(loss)
@@ -39,6 +40,7 @@ class VAEMaskConfig:
         print("input dim:", input_dim)
         self.input_dim = input_dim
         self.sens_column_ids = ids
+        self.non_sens_latent_dim = self.latent_dim - len(ids)
         #for loss_config in self.loss_configs.values():
         #    loss_config["non_sens_latent_dim"] = self.latent_dim - len(ids)
 
@@ -48,6 +50,9 @@ class VAEMaskConfig:
 
         if self.KL_SENSITIVE_LOSS in self.loss_configs:
             self.loss_configs[self.KL_SENSITIVE_LOSS]["sens_col_ids"] = ids
+            
+        if self.LATENT_S_ADV_LOSS in self.loss_configs:
+            self.loss_configs[self.LATENT_S_ADV_LOSS]["input_dim"] = self.non_sens_latent_dim
 
 
     #def _config_KL_div(self, weight=0.005): valye during first successfult tests
@@ -69,7 +74,7 @@ class VAEMaskConfig:
             "lr": lr,
             "optimizer": optimizer,
             "layers": layers,
-            "input_dim": self.latent_dim -1,
+            "input_dim": self.non_sens_latent_dim,
         }
         print(self.loss_configs[self.LATENT_S_ADV_LOSS])
 
@@ -99,8 +104,8 @@ class VAEMaskConfig:
 
     def __str__(self):
         config_str = (
-            f"VAEMaskConfig(epochs={self.epochs}, latent_dim={self.latent_dim}, "
-            f"vae_layers={self.vae_layers}, lr={self.lr}, losses_used={self.lossed_used})"
+            f"VAEMaskConfig(epochs={self.epochs}, latent_dim={self.latent_dim}, mask_values={self.mask_values} "
+            f"vae_layers={self.vae_layers}, lr={self.lr}, \nlosses_used={self.lossed_used})"
         )
         config_str += ", ".join([f"{name}: {config}" for name, config in self.loss_configs.items()])
         return config_str

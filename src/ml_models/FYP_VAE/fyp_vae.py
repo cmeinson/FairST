@@ -51,13 +51,12 @@ class VAEMaskModel(Model):
         sens_column_ids = [self._column_names.index(col) for col in self._config.sensitive_attr]
 
         self._vm_config.set_input_dim_and_sens_column_ids(input_dim, sens_column_ids)
+        self._set_mask_values_and_weights(X, sens_column_ids) 
+        print(self._mask_weights)  
 
         # Build the mask_model
         tensor = torch.tensor(X.values, dtype=torch.float32)
-        self._mask_model = self._train_vae(tensor, y, self._vm_config.epochs)
-        
-        self._set_mask_values_and_weights(X, sens_column_ids) 
-        print(self._mask_weights)     
+        self._mask_model = self._train_vae(tensor, y, self._vm_config.epochs)   
 
     def predict(self, X: pd.DataFrame) -> np.array:
         """ Uses the previously trained ML model
@@ -73,9 +72,9 @@ class VAEMaskModel(Model):
         preds = np.zeros(len(X))
         for attrs, w in self._mask_weights.items():
             X_masked = self._mask(torch.tensor(X.values, dtype=torch.float32), list(attrs)).detach().numpy()
-            preds = preds + (self._model.predict(X_masked)*w)
+            preds = preds + (self._model.predict(X_masked, binary=False)*w)
         
-        return preds      
+        return self._binarise(preds)      
         
     def _mask(self, X, mask_values: List[int]):
         print("BEFORE MASK")
@@ -142,14 +141,14 @@ class VAEMaskModel(Model):
         if self._vm_config.mask_values is not None:
             self._mask_weights = {tuple(self._vm_config.mask_values): 1}
             return
-        
-        tensor_values = list(map(tuple, X[:, sens_column_ids].numpy()))
+
+        tensor_values = list(map(tuple, X.iloc[:, sens_column_ids].values))
         n = len(tensor_values)
         counts = dict(Counter(tensor_values))
         
         for attrs, count in counts.items():
             if count>0:
-                self._mask_weights[attrs] = counts/n
+                self._mask_weights[attrs] = count/n
 
 
 

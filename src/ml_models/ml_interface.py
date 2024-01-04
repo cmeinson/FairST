@@ -56,7 +56,7 @@ class Model:
         """
         raise NotImplementedError
 
-    def predict(self, X: pd.DataFrame) -> np.array:
+    def predict(self, X: pd.DataFrame, binary = True) -> np.array:
         """ Uses the previously trained ML model
 
         :param X: testing data
@@ -65,8 +65,11 @@ class Model:
         :return: predictions for each row of X
         :rtype: np.array
         """
-        y = self._model.predict(X)
-        return self._binarise(y)
+        if binary:
+            return self._model.predict(X)
+        
+        # TODO: not sure predict proba is the way to go for all modes!!!!
+        return self._model.predict_proba(X)[:,1]
     
         
     def _get_model(self, method = None):
@@ -95,8 +98,7 @@ class Model:
             return model
         elif method == self.NN_old:
             iter = 500 if ("iter_1" not in other) else other["iter_1"] 
-            ws = False if ("warm_start" not in other) else other["warm_start"] 
-            return MLPClassifier( max_iter= iter, warm_start=ws)
+            return MLPClassifier( max_iter= iter)
         elif method == self.NB_C:
             return GaussianNB()
         elif method == self.RF_C:
@@ -122,8 +124,8 @@ class Model:
 
 class BaseModel(Model):
     def fit(self, X: pd.DataFrame, y: np.array):
-        if not self._model:
-            #print("fit base model", self._config.bias_mit, self._config.sensitive_attr)
+        # if self._model if the base model was not previously fitted.
+        if self._model is None:
             self._model = self._get_model() #  | {"input_dim":X.shape[1]} 
             self._model.fit(X, y)
-        # incorrect, TODO: take IN a base model and just do nothing upon training
+        # TODO: rethink the base model logic so that could use preproc and in proc as base models

@@ -49,12 +49,10 @@ class Tester:
         # for reps
         for _ in range(repetitions):
             # RE TRAIN THE POST PROC no bias mit BASE MODELS! PASS IT INTO THE MODELS ON INIT. save it in self.
-            #self._train_base_models(test_configs)
             self._base_models = {} # set to none and train when needed by _get_model
 
             # run each test config 
             for conf in test_configs:
-                #print("run conf", conf)
                 self._run_test(conf, save_intermid_results)
 
             # only update the data split for each data in self._initd_data dict. (the first it will have the same default)
@@ -168,7 +166,7 @@ class Tester:
         if base_descr not in self._base_models:
             # train a base model with no bias mit (unique for every prproc+ml_method)
             X, y = self._get_dataset(config.preprocessing).get_train_data()
-            model =  BaseModel(config)
+            model = BaseModel(config)
             model.fit(X, y)
             self._base_models[base_descr] = model
 
@@ -179,7 +177,7 @@ class Tester:
         and that configs with attributes=None are replaced with all the possible columns from the dataset"""
         for conf in test_configs:
             data = self._get_dataset(conf.preprocessing)
-            if not conf.sensitive_attr:
+            if conf.sensitive_attr is None:
                 conf.sensitive_attr = data.get_sensitive_column_names()
 
     def _update_all_data_splits(self):

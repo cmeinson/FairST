@@ -5,6 +5,29 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn import preprocessing
 
+"""
+age,            [continuous]    keep
+workclass,      [merge 8 -> 5 cat]  
+fnlwgt,         -[continuous]    DROP    basically contains sensitive data as far as i understand final weight: The weights on the Current Population Survey (CPS) files are controlled to independent estimates of the civilian noninstitutional population of the US.
+education,      -[16 cat]        DROP. it is a one to one mapping basically with education-num which is continuous
+education-num,  [continuous]    keep
+marital-status, [merge 7 -> 6 cat]  merge Married-AF-spouse  into Married-civ-spouse as it is tiny and same ratio
+occupation,     [15 cat] keep all for now but could merge some into ?
+relationship,   [6 -> 4 cat] Other-relative, Own-child, Spouse (Husband/Wife), None (THe rest)  
+race,
+sex,
+capital-gain,   - skip for now
+capital-loss,   - skip for now
+hours-per-week, [continuous]    keep
+native-country, - I kinda want to leave it out as it feels susss and potentially race encoding
+
+Probability - the Y label
+"""
+"""
+
+DROP: fnlwgt, education,  native-country
+
+"""
 
 class AdultData(Data):
     # NB: if ur implementation of the class takes more than one file pls put it all into sub folder
@@ -31,16 +54,7 @@ class AdultData(Data):
 
         # Discretize age
         # TODO: WHY
-        """
-        dataset['age'] = np.where(dataset['age'] >= 70, 70, dataset['age'])
-        dataset['age'] = np.where((dataset['age'] >= 60 ) & (dataset['age'] < 70), 60, dataset['age'])
-        dataset['age'] = np.where((dataset['age'] >= 50 ) & (dataset['age'] < 60), 50, dataset['age'])
-        dataset['age'] = np.where((dataset['age'] >= 40 ) & (dataset['age'] < 50), 40, dataset['age'])
-        dataset['age'] = np.where((dataset['age'] >= 30 ) & (dataset['age'] < 40), 30, dataset['age'])
-        dataset['age'] = np.where((dataset['age'] >= 20 ) & (dataset['age'] < 30), 20, dataset['age'])
-        dataset['age'] = np.where((dataset['age'] >= 10 ) & (dataset['age'] < 10), 10, dataset['age'])
-        dataset['age'] = np.where(dataset['age'] < 10, 0, dataset['age'])
-        """
+
         return dataset
 
     def _get_columns(self, dataset: pd.DataFrame, preproc: str) -> pd.DataFrame:
