@@ -11,6 +11,8 @@ from .models import *
 from .losses import *
 from ...utils import TestConfig
 from .configs import VAEMaskConfig
+from collections import Counter
+
 
 
 
@@ -30,9 +32,10 @@ class VAEMaskModel(Model):
         """
         super().__init__(config)        
         self._model = base_model
-        self._mask_models = {}
+        self._mask_model = None
         self._column_names = None
         self._vm_config = config.other[self.VAE_MASK_CONFIG]
+        self._mask_weights = {}
 
 
     def fit(self, X: pd.DataFrame, y: np.array):
@@ -49,10 +52,12 @@ class VAEMaskModel(Model):
 
         self._vm_config.set_input_dim_and_sens_column_ids(input_dim, sens_column_ids)
 
-        # Build the mask_model for predicting each protected attribute
+        # Build the mask_model
         tensor = torch.tensor(X.values, dtype=torch.float32)
-        self._mask_models = self.train_vae(tensor, y, self._vm_config.epochs)
-
+        self._mask_model = self._train_vae(tensor, y, self._vm_config.epochs)
+        
+        self._set_mask_values_and_weights(X, sens_column_ids) 
+        print(self._mask_weights)     
 
     def predict(self, X: pd.DataFrame) -> np.array:
         """ Uses the previously trained ML model
@@ -65,21 +70,25 @@ class VAEMaskModel(Model):
         :return: predictions for each row of X
         :rtype: np.array
         """
-        X_masked = self._mask(torch.tensor(X.values, dtype=torch.float32)).detach().numpy()
-        return self._model.predict(X_masked)
+        preds = np.zeros(len(X))
+        for attrs, w in self._mask_weights.items():
+            X_masked = self._mask(torch.tensor(X.values, dtype=torch.float32), list(attrs)).detach().numpy()
+            preds = preds + (self._model.predict(X_masked)*w)
         
-    def _mask(self, X):
+        return preds      
+        
+    def _mask(self, X, mask_values: List[int]):
         print("BEFORE MASK")
         print(X)
-        self._mask_models.eval()
+        self._mask_model.eval()
         
-        X_out, *_ = self._mask_models.forward(X,[1]) # TODO PUT , 1  
+        X_out, *_ = self._mask_model.forward(X, mask_values) 
         print("AFTER MASK")
         print(X_out)  
 
         return X_out
     
-    def train_vae(self, X: Tensor, y: np.array, epochs = 500):
+    def _train_vae(self, X: Tensor, y: np.array, epochs = 500):
         self.COUNTER = 0
         model = VAE(self._vm_config)
         optimizer = optim.Adam(model.parameters(), lr=self._vm_config.lr)#, momentum=0.3)
@@ -100,7 +109,7 @@ class VAEMaskModel(Model):
             loss.backward() 
             optimizer.step()
 
-            # print al used losses
+            # print all used losses
             if self.COUNTER%PRINT_FREQ==0:
                 print(f'Epoch [{epoch+1}/{epochs}], Loss: {loss.item():.7f}')
         model.eval()
@@ -128,6 +137,19 @@ class VAEMaskModel(Model):
         
         loss_config = self._vm_config.loss_configs[name]
         return classes[name](loss_config)
+    
+    def _set_mask_values_and_weights(self, X: pd.DataFrame, sens_column_ids):
+        if self._vm_config.mask_values is not None:
+            self._mask_weights = {tuple(self._vm_config.mask_values): 1}
+            return
+        
+        tensor_values = list(map(tuple, X[:, sens_column_ids].numpy()))
+        n = len(tensor_values)
+        counts = dict(Counter(tensor_values))
+        
+        for attrs, count in counts.items():
+            if count>0:
+                self._mask_weights[attrs] = counts/n
 
 
 

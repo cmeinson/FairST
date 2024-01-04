@@ -9,6 +9,7 @@ import torch.nn.functional as F
 from .models import *
 from itertools import combinations
 from itertools import product
+import random
 
 
 def print_grad(loss):
@@ -23,6 +24,7 @@ class LossModel:
     def __init__(self, loss_config: Dict) -> None:
         # init model, optimiser, and set it to train()
         self._loss_config = loss_config
+        self._first_init_done = False
 
     def set_current_state(self, original_X, decoded_X, mu, std, z, attr_cols, vae_model, y):
         self.original_X = original_X
@@ -34,6 +36,14 @@ class LossModel:
         self.attr_tensor = torch.stack([torch.squeeze(col) for col in attr_cols], dim =1)
         self.vae_model = vae_model
         self.y = y
+        
+        if not self._first_init_done:
+           self._first_init_done = True 
+           self._first_init()
+           
+    def _first_init(self):
+        # for child classes to run optinally after the first state is given.
+        pass
 
     def get_loss(self):
         # train the model and return the loss for this iteration
@@ -66,33 +76,30 @@ class ReconstructionLoss(LossModel):
 class LatentDiscrLoss(LossModel):
     # https://discuss.pytorch.org/t/runtimeerror-one-of-the-variables-needed-for-gradient-computation-has-been-modified-by-an-inplace-operation-torch-floattensor-64-1-which-is-output-0-of-asstridedbackward0-is-at-version-3-expected-version-2-instead-hint-the-backtrace-further-a/171826
     # could be that it is tensors left from previous it???
-    def __init__(self, loss_config) -> None:
-
-        self._loss_config = loss_config # TODO: init through super clas?
-
-        self.discr = Discriminator(loss_config)
-        # TODO: optim from config
-        self.optimizer = optim.Adam(self.discr.parameters(), lr=loss_config["lr"])#, momentum=0.3)
-        self.discr.train()
+    """
+    How to make it multi attribute?
+    - a discriminator for each attr.
+    
+    not going to use subgroup as the goal is for none of them to be predictible.
+    NOTE: in the future could try evaluating it based on subgroup somehow similar to DF
+    """      
+    def _first_init(self):
+        self.discrs = []
+        self.optims = []
+        
+        for _ in self.attr_cols:
+            discr = Discriminator(self._loss_config) 
+            optimizer = optim.Adam(discr.parameters(), lr=self._loss_config["lr"])#, momentum=0.3)
+            discr.train()
+            self.discrs.append(discr)
+            self.optims.append(optimizer)
     
     def get_loss(self):
-        # TODO: !!!!!!!!!!!!!!!! only predicts first attr
-        labels = self.attr_cols[0].detach().clone()
-
-        # discr loss predict -
-        discr_pred = self.discr.forward(self.mu.detach().clone()) # !!!!!!!!!?????
-        discr_loss = (nn.MSELoss()(discr_pred, labels)) 
-
-        # trains discr
-        self.optimizer.zero_grad()
-        discr_loss.backward()
-        self.optimizer.step()
-
-        # NOTE: trying to avoid copy()
-        discr_pred = self.discr.forward(self.mu) # !!!!!!!!!?????
-        loss = (nn.MSELoss()(discr_pred, labels))
-        #loss = discr_loss.detach().clone() # this breaks it
-
+        total_loss = 0
+        for i in range(len(self.attr_cols)):
+            labels = self.attr_cols[i].detach().clone()
+            total_loss += self._loss_per_attr(labels, self.discrs[i], self.optims[i])
+        
         # disciminator loss:
         # 0   - dirctiminator can guess perfectly guess
         # 0.5 - discriminator no better than a random guess - perfect
@@ -101,10 +108,39 @@ class LatentDiscrLoss(LossModel):
         # 1/(0.1)-2 = 8
         # 1/(0.25)-2 = 2
         # 1/(0.5)-2 = 0 
-        return torch.clamp(torch.pow(loss, -1)-2, min=0) * self._loss_config["weight"]
+        return (total_loss/len(self.attr_cols)) * self._loss_config["weight"]
+
+    
+    def _loss_per_attr(self, labels, discr, optimizer):
+        # discr loss predict -
+        discr_pred = discr.forward(self.mu.detach().clone()) # !!!!!!!!!?????
+        discr_loss = (nn.MSELoss()(discr_pred, labels)) 
+
+        # trains discr
+        optimizer.zero_grad()
+        discr_loss.backward()
+        optimizer.step()
+
+        # NOTE: trying to avoid copy()
+        discr_pred = discr.forward(self.mu) # !!!!!!!!!????? TODO: why does it not work with z
+        loss = (nn.MSELoss()(discr_pred, labels))
+        #loss = discr_loss.detach().clone() # this breaks it
+        
+        return torch.clamp(torch.pow(loss, -1)-2, min=0)
+        
     
 
 class FlippedDiscrLoss(LossModel):
+    """
+    NOTE:
+    How to make it multi attribte?
+    (could have a single discriminator. and do all possible flips. but with more attributes the discriminator could just aways preduct fliped....)
+    
+    ATM:   For half of the points keep the original. for other half flip some attributes randomly. 
+    
+    Could have a discriminator for each att being flip so could have a 50/50 split but that would take so much longer to train and not ure would be worth
+    """
+    
     def __init__(self, loss_config) -> None:
         self._loss_config = loss_config # TODO: init through super clas?
 
@@ -133,13 +169,9 @@ class FlippedDiscrLoss(LossModel):
         return torch.clamp(torch.pow(loss, -1)-2, min=0) * self._loss_config["weight"] 
     
     def _loss(self, decoded_X):
-        #print("before flip")
-        #print(decoded_X)
         og_attr_pred = self.discr.forward(decoded_X) 
         flip_attr_pred = self.discr.forward(self.get_flipped_attrs_decoded()) 
         # calc discr LOSS
-        #print("og preds ", og_attr_pred)
-        #print("flipped  ", flip_attr_pred)
         og_attr_loss = (nn.MSELoss()(og_attr_pred, torch.zeros_like(og_attr_pred)))
         flip_attr_loss = (nn.MSELoss()(flip_attr_pred, torch.ones_like(og_attr_pred)))
         #print("disrc loss", og_attr_loss,flip_attr_loss, (og_attr_loss + flip_attr_loss) / 2 )
@@ -147,14 +179,16 @@ class FlippedDiscrLoss(LossModel):
 
         
     def get_flipped_attrs_decoded(self):
+        # flip at least 1 attr
+        nr_of_flips = random.randint(1, len(self.attr_cols))
+        ids_to_flip = random.sample(self._loss_config["sens_col_ids"], nr_of_flips)
+        
         X = self.original_X.clone().detach()
 
-        # TODO: !!!!!!!!!!!!!!!! only predicts first attr
-        i = self._loss_config["sens_col_ids"][0]
-        X[:, i] = 1 - X[:, i]
+        for i in ids_to_flip:
+            X[:, i] = 1 - X[:, i]
+            
         outputs, _, _, _, _ = self.vae_model.forward(X)
-        #print("after flip")
-        #print(outputs)
         return outputs.detach().clone()
 
 
@@ -162,14 +196,11 @@ class FlippedDiscrLoss(LossModel):
 class SensitiveKLLoss(LossModel):
     def get_loss(self):
         # TODO: for future, maybe weigh the variancc
-        # TODO: with multiple attrs will need to make it intersectional???/ tbh not an expensive computation so can just do it pairwise
+        # NOTE: with multiple attrs will need to make it intersectional???/ tbh not an expensive computation so can just do it pairwise
         # for each dimention and each subgroup get mean and variance
         subgroup_ids = self.get_subgroup_ids()
         subgroup_mus = []
         subgroup_stds = []
-
-        #print('z')
-        #print_grad(self.z)
 
         # TODO: why this not work from z!?!?!?!?!?!?!
         for ids in subgroup_ids:
@@ -182,13 +213,10 @@ class SensitiveKLLoss(LossModel):
             kl = self.kl_div(subgroup_mus[p], subgroup_stds[p], subgroup_mus[q], subgroup_stds[q])
             total += kl
 
-        #print('FN')
-        #print_grad(total)
         return total / len(pairs)
 
     def kl_div(self, p_mu, p_std, q_mu, q_std):
         kls = torch.log(q_std/p_std) + (p_std**2 + (p_mu - q_mu)**2) / (2*(q_std**2)) - 0.5
-        #print("KLS", kls)
         return torch.mean(kls)
     
 
@@ -205,7 +233,7 @@ class PositiveVectorLoss(LossModel):
         pairs = list(combinations(vectors, 2))
         for v, u in pairs:
             similarity = F.cosine_similarity(v, u, dim=0)
-            # need to clmt due to floating point issue in the torch library
+            # need to clmp due to floating point issue in the torch library
             losses.append(torch.clamp(1 - similarity, min=0))
 
         tensor_loss = torch.stack(losses)
