@@ -1,0 +1,182 @@
+
+\documentclass[sigplan,screen]{acmart}
+
+\AtBeginDocument{%
+  \providecommand\BibTeX{{%
+    \normalfont B\kern-0.5em{\scshape i\kern-0.25em b}\kern-0.8em\TeX}}}
+
+\definecolor{hig}{RGB}{210, 130, 115}
+\definecolor{mid}{RGB}{255, 220, 220}
+\definecolor{low}{RGB}{255, 240, 240}
+\definecolor{no}{RGB}{255, 255, 255}
+
+\definecolor{yh}{RGB}{210, 200, 120}
+\definecolor{ym}{RGB}{255, 245, 210}
+
+\definecolor{gh}{RGB}{120, 200, 150}
+\definecolor{gm}{RGB}{195, 240, 200}
+\usepackage{pgfplots}
+
+\begin{document}
+
+\title{Project Plan: Mitigating ML bias by disentangling and masking sensitive attributes}
+
+\author{Carmen Meinson}
+\author{\small Supervisor: Federica Sarro}
+
+
+
+%\begin{abstract}
+%\end{abstract}
+
+%\keywords{machine learning, bias mitigation, multiple attributes}
+
+\maketitle
+\section{fyp mini plan}
+
+TODO
+- WHICH LOSS COMBOS TO USE
+- describe the losses
+- code up the tradeoff graph code
+
+BACKGROUND:
+- Group Fair Classification
+- vae
+- metrics
+- abt datasets - describe the unfairness.... if it will affect the results
+
+Experiment setup:
+- the same base model
+- train and test split
+
+\section{Introduction}
+
+
+
+\section{Lit review}
+\subsection{state of the art methods}
+\subsection{Notation}
+
+\section{Proposed method}
+- overall idea
+
+\subsection{disentanglement losses}
+- losses tried
+
+How to make losses multi attribute?
+
+class LatentDiscrLoss(LossModel):
+    """
+    How to make it multi attribute?
+    - a discriminator for each attr.
+    
+    not going to use subgroup as the goal is for NONE of them to be predictable.
+    NOTE: in the future could try evaluating it based on subgroup somehow similar to DF
+    """   
+
+class FlippedDiscrLoss(LossModel):
+    """
+    NOTE:
+    How to make it multi attribte?
+    (could have a single discriminator. and do all possible flips. but with more attributes the discriminator could just aways preduct fliped....)
+    
+    For half of the points keep the original. for other half flip some attributes randomly. 
+    
+    Could have a discriminator for each att being flip so could have a 50/50 split but that would take so much longer to train and not ure would be worth
+    """
+
+
+class SensitiveKLLoss(LossModel):
+        # TODO: for future, maybe weigh the variancc
+        # NOTE: with multiple attrs will need to make it intersectional???/ tbh not an expensive computation so can just do it pairwise
+        
+
+\subsection{Implementation}
+
+
+\subsection{Experiment configurable / hyperparameters}
+
+\subsection{Preliminaries: hyperparam tuning and desicions}
+- mid results
+
+\subsection{Desicions made !!!!!!!!!!!!!!!!!!!}
+
+\section{Experimantal Methodology}
+\subsection{fairness metrics}
+\subsection{datasets}
+\subsection{Benchmarks}
+
+\subsection{experiments results}
+
+
+
+
+\section{Results}
+
+
+
+
+\section{Conclusion}
+\subsection{future work}
+
+
+
+
+
+
+\section{PROJECT PLAN - Introduction}
+Bias mitigation in Machine Learning (ML) is an actively expanding research area. The methods in this area are typically categorized into pre-, in- and post-processing techniques. Among these, post-processing methods are generally the most flexible when it comes to real-world applications, as they are model agnostic and can also be used with models previously trained without any bias mitigation. Despite this, post-processing methods are the least common in the literature \cite{Hort22}. 
+\\This project takes inspiration from the post-processing method FairMask \cite{Peng22} aiming to expand on the idea of masking sensitive attributes, by utilizing AutoEncoders to disentangle the sensitive attributes. 
+Disentanglement of sensitive attributes in latent space has been vastly explored in research on fair representation learning such as \cite{Madras18} and \cite{Creager19}. In this project, we explore application of similar AutoEncoder training approaches for bias mitigation in a post-processing setting.
+
+
+%, akin to the approaches taken by in-processing methods such as FFVAE \cite{Creager19}. 
+
+
+\section{Aims}
+The primary aim of this project is to develop a novel post-processing ML bias mitigation approach for tabular data with multiple sensitive attributes. As such this project also aims to present thorough testing and benchmarking against alternative state-of-the-art bias mitigation methods to determine conditions under which the new approach would be desirable for real-world software systems.
+
+\section{Objectives}
+\begin{itemize}
+\item Conduct a literature review, including research on AutoEncoder-based approaches and the associated loss functions.
+\item Implement and experiment with various loss functions.
+\item Evaluate the new approach using standard datasets and relevant metrics.
+\end{itemize}
+
+\section{Expected Outcomes}
+\begin{itemize}
+\item A comprehensive literature review summarizing relevant work in the field.
+\item The development of a novel algorithm for post-processing ML bias mitigation.
+\item A publicly available repository containing the framework, complete with instructions and documentation.
+\item A thorough evaluation of the algorithm's performance, including comparisons with existing methods.
+\end{itemize}
+
+\section{Work Plan}
+\begin{itemize}
+\item Project Start - Term 1, Week 5 (5 weeks): \\Initiate a literature review, brainstorm ideas, and conduct initial experiments.
+\item Reading Week - Term 1, Week 6 (2 weeks): \\Begin coding the initial testing framework, including common datasets and metrics. Select potential loss functions for the AutoEncoder.
+\item Term 1, Week 7 to Term 2, Week 1 (8 weeks): \\Implement loss functions, perform hyperparameter tuning, and benchmark the approach against other variations and state-of-the-art methods.
+\item Term 2, Week 2 to Term 2 Reading Week (5 weeks): \\Finalize the code framework and establish the final testing methodology. Run comprehensive tests on the selected algorithm, potentially exploring multiple promising loss variations.
+\item Term 2, Week 6 to End of the Project: \\Focus on preparing the Final Report.
+\end{itemize}
+
+\section{Ethics review}
+All the datasets used in the project will be publicly available datasets which are widely used by researchers in the area. The project should not require ethical approval.
+%\section{Definitions of Algorithmic Fairness}
+%\subsection{Individual Fairness} 
+
+
+
+% Additionally, with only \cite{Padh21}, \cite{Creager19}, \cite{Liu22} 
+
+
+
+
+
+
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{sample-base}
+
+\end{document}
+\endinput
+

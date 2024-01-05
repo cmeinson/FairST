@@ -68,7 +68,7 @@ class VAEMaskConfig:
             "weight": weight
         }
 
-    def _config_latent_s(self, weight=0.1, lr=0.05, optimizer="Adam", layers=(30,30)):
+    def _config_latent_s(self, weight=0.11, lr=0.05, optimizer="Adam", layers=(30,30)):
         self.loss_configs[self.LATENT_S_ADV_LOSS] = {
             "weight": weight,
             "lr": lr,
@@ -90,7 +90,7 @@ class VAEMaskConfig:
         print(self.loss_configs[self.FLIPPED_ADV_LOSS])
 
     #def _config_KL_sens(self, weight=0.005):
-    def _config_KL_sens(self, weight=10000):
+    def _config_KL_sens(self, weight=9000):
         self.loss_configs[self.KL_SENSITIVE_LOSS] = {
             "weight": weight,
             "sens_col_ids" : self.sens_column_ids

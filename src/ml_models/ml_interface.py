@@ -67,7 +67,7 @@ class Model:
         """
         if binary:
             return self._model.predict(X)
-        
+        # TODO: make this into ._predict functionality
         # TODO: not sure predict proba is the way to go for all modes!!!!
         return self._model.predict_proba(X)[:,1]
     
