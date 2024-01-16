@@ -49,8 +49,10 @@ class Data:
         :type tests_ratio: float, optional
         """
         self._test_ratio = test_ratio
+        
+        self._raw = pd.read_csv(file_name)
 
-        self.dataset_orig = self._clean_data(pd.read_csv(file_name))
+        self.dataset_orig = self._clean_data(self._raw)
         # base preproc - remove nans, any feature eng i need 
         # Do default pre-processing
 

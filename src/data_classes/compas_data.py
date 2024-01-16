@@ -2,12 +2,10 @@ from .data_interface import Data
 from typing import List
 import numpy as np
 import pandas as pd
-from sklearn.model_selection import train_test_split
+
 
 
 class CompasData(Data):
-    # NB: if ur implementation of the class takes more than one file pls put it all into sub folder
-    # does reading and cleaning go here or do we add extra functions for that?
     def __init__(self, preproc=None, test_ratio=0.2) -> None:
         """
         - reads the according dataset from the ata folder,
@@ -39,8 +37,7 @@ class CompasData(Data):
     def my_columns(self, X):
         return X[['sex', 'age', 'race',
                   'juv_fel_count', 'juv_misd_count', 'juv_other_count',
-                  'priors_count', 'c_charge_degree', 
-                  "decile_score.1", "priors_count.1"]]
+                  'priors_count', 'c_charge_degree', "decile_score.1", "v_decile_score"]] ##, ?? NOTE:  "v_decile_score"
         # TODO: ADD MORE COLUMNS ONCE WE HAVE ONE HOT
         #return X[["sex", "age_cat", "race", "priors_count", "c_charge_degree", "decile_score.1", "priors_count.1"]]
 
@@ -62,9 +59,9 @@ class CompasData(Data):
              'r_charge_degree', 'r_days_from_arrest', 'r_offense_date', 'r_charge_desc', 'r_jail_in', 'r_jail_out',
              'violent_recid', 'is_violent_recid', 'vr_case_number', 'vr_charge_degree', 'vr_offense_date',
              'vr_charge_desc', 'type_of_assessment', 'decile_score', 'score_text', 'screening_date',
-             'v_type_of_assessment', 'v_decile_score', 'v_score_text', 'v_screening_date', 'in_custody', 'out_custody',
+             'v_type_of_assessment', 'v_score_text', 'v_screening_date', 'in_custody', 'out_custody',
              'start', 'end', 'event'], axis=1)
-
+        
         dataset = dataset.dropna()
 
         dataset['race'] = np.where(dataset['race'] != 'Caucasian', 0, 1)

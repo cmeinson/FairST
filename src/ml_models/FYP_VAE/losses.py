@@ -83,6 +83,7 @@ class LatentDiscrLoss(LossModel):
     not going to use subgroup as the goal is for none of them to be predictible.
     NOTE: in the future could try evaluating it based on subgroup somehow similar to DF
     """      
+    # TODO: wha if instead of training a new descriminator for each goup we just train a multiobjectiive one
     def _first_init(self):
         self.discrs = []
         self.optims = []
@@ -132,6 +133,7 @@ class LatentDiscrLoss(LossModel):
 
 class FlippedDiscrLoss(LossModel):
     """
+    NOTE: miht be less useful if i imlement the bit that turns binary back into binary and one hot back into one hot.
     NOTE:
     How to make it multi attribte?
     (could have a single discriminator. and do all possible flips. but with more attributes the discriminator could just aways preduct fliped....)
@@ -140,6 +142,7 @@ class FlippedDiscrLoss(LossModel):
     
     Could have a discriminator for each att being flip so could have a 50/50 split but that would take so much longer to train and not ure would be worth
     """
+    # TODO: what if sensitive attributes are one hot encoings. must add functionality for that.
     
     def __init__(self, loss_config) -> None:
         super().__init__(loss_config)

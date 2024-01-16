@@ -4,21 +4,26 @@ import torch
 
 torch.autograd.set_detect_anomaly(True)
 
+
 epochs = 1250
-n_repetitions = 3
+n_repetitions = 4
 results_filename = 'test'
-results_filename = "multiple_maps_"
+results_filename = "muliple_maps_multiple_attrs"#"multiple_maps_"
 other = {}
 results_file = os.path.join("results",results_filename +".csv")
 
 
-datasets = [Tester.COMPAS_D] #[Tester.ADULT_D,  Tester.COMPAS_D]#, Tester.GERMAN_D, Tester.ADULT_D,], Tester.COMPAS_D, 
-latent_dims = [10] #[30, 10]
+datasets = [Tester.ADULT_D, Tester.COMPAS_D] #[Tester.ADULT_D,  Tester.COMPAS_D]#, Tester.GERMAN_D, Tester.ADULT_D,], Tester.COMPAS_D, 
+latent_dims = [30, 10]
 metric_names = [Metrics.ACC, Metrics.PRE, Metrics.REC, Metrics.AOD, Metrics.EOD, Metrics.SPD, Metrics.DI, Metrics.SF, Metrics.DF]
 
 
+# TODO: why is race DI increased?? while everything else is better -> as it stribes toward 1. use DI_FM instead for 0 target
 
+# TODO: fix the predict function! with the ppredict proba equivalent for each model 
+# TODO: need fancier benchmarks. esp if the combo with rw works.
 
+# TODO: add eq weighting for all subgroups
 """
 curent oppinions:
 
@@ -45,7 +50,7 @@ losses = [
     #[VAEMaskConfig.LATENT_S_ADV_LOSS,       VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS], # 0 - 10 ish x 0.1 # : could try to reduce a bit ??? not mucg tho. depends if its the only bias mit??
     ##[VAEMaskConfig.FLIPPED_ADV_LOSS,        VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS],   # 0 - 4 ish x 0.1 # : LESS  weight 100 # TODO: 10 more?? maybe 50
     ##[VAEMaskConfig.KL_SENSITIVE_LOSS,       VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS], # 0.001 - 0.000 001 tho this is overdoing it x 100 . INCREASE WEIGHT 100
-    ##[VAEMaskConfig.POS_VECTOR_LOSS,         VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS], # 0.000 002 - 0 x 1000 # . INCR WEIGHT 1000
+    ##[VAEMaskConfig.POS_VECTOR_LOSS,         VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS], # p should be used together with some biaas mit. it mostly imporves acc
     ####[VAEMaskConfig.KL_SENSITIVE_LOSS, VAEMaskConfig.POS_VECTOR_LOSS,        VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS],
     #[VAEMaskConfig.FLIPPED_ADV_LOSS,  VAEMaskConfig.KL_SENSITIVE_LOSS,      VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS],
     #[VAEMaskConfig.FLIPPED_ADV_LOSS,  VAEMaskConfig.POS_VECTOR_LOSS,        VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS],
@@ -57,10 +62,10 @@ losses = [
 losses = [
     #[VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS],
     #[VAEMaskConfig.POS_VECTOR_LOSS,         VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS], # 0.000 002 - 0 x 1000 # . INCR WEIGHT 1000
-    #[VAEMaskConfig.KL_SENSITIVE_LOSS, VAEMaskConfig.POS_VECTOR_LOSS,        VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS],
+    [VAEMaskConfig.KL_SENSITIVE_LOSS, VAEMaskConfig.POS_VECTOR_LOSS,        VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS],
     [VAEMaskConfig.FLIPPED_ADV_LOSS,  VAEMaskConfig.POS_VECTOR_LOSS,        VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS],
-    #[VAEMaskConfig.LATENT_S_ADV_LOSS, VAEMaskConfig.POS_VECTOR_LOSS,        VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS],
-    #[VAEMaskConfig.LATENT_S_ADV_LOSS, VAEMaskConfig.KL_SENSITIVE_LOSS,      VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS],
+    [VAEMaskConfig.LATENT_S_ADV_LOSS, VAEMaskConfig.POS_VECTOR_LOSS,        VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS],
+    [VAEMaskConfig.LATENT_S_ADV_LOSS, VAEMaskConfig.KL_SENSITIVE_LOSS,      VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS],
 ]
 
 for l in losses:
@@ -69,7 +74,7 @@ for l in losses:
         #fyp_config.config_loss(VAEMaskConfig.RECON_LOSS, weight = w[1])
         #fyp_config.config_loss(VAEMaskConfig.LATENT_S_ADV_LOSS, weight = w[2])
 
-        for s in [ ["race"],["sex"]]: # ["race"] ["sex","race"]  ["sex","race"],
+        for s in [ ["sex","race"]]: # ["race"] ["sex","race"]  ["sex","race"],  ,["race"],["sex"]
             fyp_config = VAEMaskConfig(epochs=epochs, latent_dim=dim, lr=0.011, losses_used=l)
             print(fyp_config)
             mls = [
@@ -93,85 +98,16 @@ for l in losses:
             ]
 
             mls = [  
-                TestConfig(Tester.FYP_VAE, Model.LG_R, other={VAEMaskModel.VAE_MASK_CONFIG: fyp_config}, sensitive_attr=s),
+                TestConfig(Tester.FYP_VAE, Model.LG_R, other={VAEMaskModel.VAE_MASK_CONFIG: fyp_config}, sensitive_attr=s), #base_model_bias_mit=Tester.REWEIGHING
                 TestConfig(Tester.BASE_ML, Model.LG_R , sensitive_attr = s),   
                 TestConfig(Tester.FAIRMASK, Model.LG_R, Model.DT_R, sensitive_attr=s),
                 TestConfig(Tester.FAIRBALANCE, Model.LG_R, sensitive_attr=s),
                 TestConfig(Tester.REWEIGHING, Model.LG_R, sensitive_attr=s),
             ]
-
-            # NOTE loss atm only single attr
-
-            
             
             results_file = os.path.join("results",results_filename +"".join(s)+".csv")
             #results_file = os.path.join("results",results_filename +".csv")
             # TEST
             tester = Tester(results_file, dataset, metric_names)
             tester.run_tests(mls, n_repetitions, save_intermid_results=True)
-
-
-
-
-
-
-
-
-
-
-
-
-
-# 2. removed native cnty from adult and age non discrete
-# 3. changed nn dims and the latent dim
-
-## ISSUES:
-"""
-the losses work only when calculated from mu not z
-how to train the adv losses while keeping torch itact
-
-"""
-
-
-## RESULTS:
-"""
-x-post-refactor-prelims-
-
-
-COMPAS:
-best bias mit for RF and NN.
-RW anf FB outperform in LR
-RF bad acc overall tho
-sex     acc loss 1% 
-race    acc loss <1% 
-
-
-ADULT:
-best bias mit
-very bad recall!
-sex     acc loss 6-7%  !!!!!
-race    acc loss 4% 
-
-out of 
-weights = [ 
-    [0.005, 12, 1],   # BB0, BE0
-    [0.005, 15, 1.5], # FD0, E20
-    [0.01 , 10, 1],   # D30, 850
-    [0.005, 10, 2]    # 940, B80
-]
-
-[0.005, 12, 1], performed the best
-
-COMPAS:
-sex     acc loss 1% 
-race    acc loss <1% 
-
-
-ADULT:
-sex     acc loss 6-7%  !!!!! not fit at all
-race    acc loss 4%          works greatttt with new lossess
-
-
-"""
-
 

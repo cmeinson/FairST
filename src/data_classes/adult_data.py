@@ -11,13 +11,13 @@ workclass,      [merge 8 -> 5 cat]
 fnlwgt,         -[continuous]    DROP    basically contains sensitive data as far as i understand final weight: The weights on the Current Population Survey (CPS) files are controlled to independent estimates of the civilian noninstitutional population of the US.
 education,      -[16 cat]        DROP. it is a one to one mapping basically with education-num which is continuous
 education-num,  [continuous]    keep
-marital-status, [merge 7 -> 6 cat]  merge Married-AF-spouse  into Married-civ-spouse as it is tiny and same ratio
+marital-status, [merge 7 -> binary]  
 occupation,     [15 cat] keep all for now but could merge some into ?
 relationship,   [6 -> 4 cat] Other-relative, Own-child, Spouse (Husband/Wife), None (THe rest)  
 race,
 sex,
-capital-gain,   - skip for now
-capital-loss,   - skip for now
+capital-gain,   bin ??? seems like a weird param
+capital-loss,   bin ??? seems like a weird param
 hours-per-week, [continuous]    keep
 native-country, - I kinda want to leave it out as it feels susss and potentially race encoding
 
@@ -49,11 +49,8 @@ class AdultData(Data):
 
         # Binarize sex, race and income (probability)
         dataset['sex'] = np.where(dataset['sex'] == 'Male', 1, 0)
-        dataset['race'] = np.where(dataset['race'] != 'White', 0, 1)
+        dataset['race'] = np.where(dataset['race'] == 'White', 1, 0)
         dataset['Probability'] = np.where(dataset['Probability'] == '<=50K', 0, 1)
-
-        # Discretize age
-        # TODO: WHY
 
         return dataset
 
@@ -79,10 +76,17 @@ class AdultData(Data):
         return X.drop(['fnlwgt', 'education', 'Probability'], axis=1)
     
     def my_columns(self, X):
-        return X.drop(['fnlwgt', 'education', 'native-country', 'Probability'], axis=1)
-        # TODO: ADD MORE COLUMNS ONCE WE HAVE ONE HOT
-        #return X.drop(['workclass', 'fnlwgt', 'education', 'marital-status', 'occupation', 'relationship', 'native-country', 'Probability'], axis=1)
+        X = X.drop(['fnlwgt', 'education', 'native-country', 'Probability'], axis=1)
+        
+        X['workclass'] = X['workclass'].replace(['Never-worked', 'Without-pay'], '?')
 
+        X['marital-status'] = X['marital-status'].replace(['Married-AF-spouse', 'Married-civ-spouse'], 1)
+        X['marital-status'] = np.where(X['marital-status'] == 1, 1, 0)
+
+        X['relationship'] = X['relationship'].replace(['Wife', 'Husband'], 'Spouse') # TODO: to test the masks ability, see if it swithces this upon swithcing gender!!!!!!!!!
+        X['relationship'] = X['relationship'].replace(['Not-in-family', 'Unmarried'], 'No') 
+        return X
+ 
     
     def get_sensitive_column_names(self) -> List[str]:
         """
