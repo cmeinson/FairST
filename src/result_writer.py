@@ -6,6 +6,8 @@ import numpy as np
 from os import path
 from .ml_models import  VAEMaskModel
 import copy
+import random
+import sys
 
 
 ALTERNATIVE_FILE_NAME_END = "_new"
@@ -17,6 +19,10 @@ class ResultsWriter:
         self._evals_per_metric_per_config = {}
         self._file_name = file_name
         self._dataset_name = dataset_name
+        self._experiment_id = random.randint(0,sys.maxsize - 10**5)
+
+    def incr_id(self):
+        self._experiment_id += 1
 
     def add_result(self, test_config, evals, write_to_file = False):
         if write_to_file:
@@ -51,6 +57,8 @@ class ResultsWriter:
         }
         entry.update({key: [np.average(evals[key])] for key in evals})
         entry.update({"VAR|" + key: [np.var(evals[key])] for key in evals})
+
+        entry.update({"id": [self._experiment_id]})
 
         res = pd.DataFrame(entry)
         self._append_to_file(res)

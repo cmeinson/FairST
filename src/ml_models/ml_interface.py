@@ -37,7 +37,7 @@ class Model:
     KN_C = "KNearestNeighbours"
     SV_C = "SupportVectorClassifier"
     NN_C = "nn keras"
-    NN_old = "MLPClassifier"
+    MLP_C = "MLPClassifier"
     NB_C = "NaiveBayes"
 
     def __init__(self, config: TestConfig) -> None:
@@ -96,7 +96,7 @@ class Model:
             model.compile(loss="binary_crossentropy", optimizer=sgd,
                 metrics=["accuracy"])
             return model
-        elif method == self.NN_old:
+        elif method == self.MLP_C:
             iter = 500 if ("iter_1" not in other) else other["iter_1"] 
             return MLPClassifier( max_iter= iter)
         elif method == self.NB_C:

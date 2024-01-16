@@ -66,6 +66,7 @@ class Tester:
             # RE TRAIN THE POST PROC no bias mit BASE MODELS! PASS IT INTO THE MODELS ON INIT. save it in self.
             self._base_models = {}  # set to none and train when needed by _get_model
 
+            self._results_writer.incr_id()
             # run each test config
             for conf in test_configs:
                 self._run_test(conf, save_intermid_results)
@@ -74,6 +75,7 @@ class Tester:
             # -> the data split is only the same if the preproc is also the same (otherwise not comparable)
             self._update_all_data_splits()
 
+        self._results_writer.incr_id()
         # print all accumulated evals to file
         self._results_writer.write_final_results()
 

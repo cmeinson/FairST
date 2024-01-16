@@ -2,11 +2,10 @@
 class VAEMaskConfig:
     KL_DIV_LOSS = "KL divergence loss"
     RECON_LOSS = "Reconstruction loss"
-    LATENT_S_ADV_LOSS = "z->s ADV loss"
+    LATENT_S_ADV_LOSS = "Latent sens ADV loss"
     FLIPPED_ADV_LOSS = "Flipped ADV loss"
     KL_SENSITIVE_LOSS = "Sensitive KL loss"
-    POS_VECTOR_LOSS = "POS Y VEC loss"
-    #def __init__(self, epochs = 500, latent_dim = 10, vae_layers = (90, 60, 30), losses_used = [KL_DIV_LOSS, RECON_LOSS, LATENT_S_ADV_LOSS]):
+    POS_VECTOR_LOSS = "Pos Y vec loss"
     def __init__(self, epochs = 500, latent_dim = 10, vae_layers = (75, 60, 30, 15), lr = 0.007, losses_used = [KL_DIV_LOSS, RECON_LOSS, LATENT_S_ADV_LOSS], mask_values = None):
         self.epochs = epochs
         self.latent_dim = latent_dim
