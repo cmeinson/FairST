@@ -1,23 +1,26 @@
 from os import path
 import pandas as pd
 import numpy as np
-from .data_interface import Data, DummyData
-from .adult_data import AdultData
-from .compas_data import CompasData
-from .adult_data import AdultData
-from .meps_data import MEPSData
-from .german_data import GermanData
-from .ml_interface import Model, BaseModel
+import collections
+from typing import List, Dict, Any, Optional
+
+from .ml_models import (
+    FairBalanceModel,
+    FairMaskModel,
+    VAEMaskModel,
+    BaseModel,
+    ReweighingModel,
+    Model,
+)
+from .data_classes import AdultData, CompasData, GermanData, MEPSData, DummyData, Data
 from .metrics import Metrics, MetricException
-from typing import List, Dict, Any
-from .fairbalance import FairBalanceModel
-from .fairmask import FairMaskModel
-from .FYP import FypModel
-from .reweighing import ReweighingModel
+from .utils import TestConfig
+from .result_writer import ResultsWriter
+
+MAX_RETRY = 15
+
 
 class Tester:
-    OPT_SAVE_INTERMID = "save intermediate results to file"
-
     # Avalable datasets for testing:
     ADULT_D = "Adult Dataset"
     COMPAS_D = "Compas Dataset"
@@ -28,181 +31,187 @@ class Tester:
     # Available bias mitigation methods
     FAIRBALANCE = "FairBalance Bias Mitigation"
     FAIRMASK = "FairMask Bias Mitigation"
-    FYP = "idk i am trying fyp"
+    FYP_VAE = "FYP VAE"
     REWEIGHING = "Reweighing Bias Mitigation"
     BASE_ML = "No Bias Mitigation"
 
-    def __init__(self, output_file) -> None:
+    POST_PROC_METHODS = [FAIRMASK, FYP_VAE]
+
+    def __init__(
+        self, file_name: str, dataset_name: str, metric_names: List[str]
+    ) -> None:
+        # same METRICS, FILENAME, DATASET
         self._exceptions = []
         self._initd_data = {}
-        self._file = output_file
-        self._preds = None
-        self._evals = None
-        self._data = None
+        self._base_models = (
+            {}
+        )  # models with no bias mitigation should be separate for each data preproc and renewes for each datat split
 
-    def run_test(self, metric_names: List[str], dataset: str, 
-                 bias_mit: str, ml_method: str, bias_ml_method: str = None, 
-                 repetitions = 1, same_data_split = False,
-                 data_preprocessing: str = None, sensitive_attr: List[str] = None, other={}):        
-        """Runs the experiments and saves the results into the file given on initialization.
-        All the experiments are run with the same data set instances and therefore with the same data splits.
+        self._dataset_name = dataset_name
+        self._metric_names = metric_names
+        self._results_writer = ResultsWriter(file_name, dataset_name)
 
-        :param metric_names: names of the metrics to use in evaluation.
-        :type metric_names: List[str]
-        :param dataset: name of the dataset
-        :type dataset: str
-        :param bias_mit: nam of the bias mitigation method
-        :type bias_mit: str
-        :param ml_method: name of the ML method used to preict the final outcom
-        :type ml_method: str
-        :param bias_ml_method: name of the ML method for bias mitigation, defaults to None
-        :type bias_ml_method: str, optional
-        :param repetitions: nr of repetitions of the experiment, defaults to 1
-        :type repetitions: int, optional
-        :param same_data_split: when set to False, each repetition of the experiment will be done with a new data split, defaults to False
-        :type same_data_split: bool, optional
-        :param data_preprocessing: name of the data preprocessing method, defaults to None
-        :type data_preprocessing: str, optional
-        :param sensitive_attr: list of attributes to be proteced if different from the default one in the dataset, defaults to None
-        :type sensitive_attr: List[str], optional
-        :param other: any other params described below, defaults to {}
-        :type other: dict, optional
-            "other" params:
-                "save_intermediate" - if set to True saves to file not only the mean results of all runs but also each intermediate result
+        self._preds = None  # ????
 
-        :return: Used testing X and y, along with all the predictions
-        :rtype: pd.DataFrame, np.array, List[np.array]
-        """
-        self._exceptions = []
-        model = self._get_model(bias_mit, other)
-        self._data = self._get_dataset(dataset,data_preprocessing)
+    def run_tests(
+        self, test_configs: List[TestConfig], repetitions=1, save_intermid_results=False
+    ):
+        if repetitions == 1:
+            save_intermid_results = False
 
-        if not sensitive_attr:
-            sensitive_attr = self._data.get_sensitive_column_names()
+        self._check_sensitive_attributes_and_init_datasets(test_configs)
 
-        self._preds = []
-        self._evals = None
+        # for reps
+        for _ in range(repetitions):
+            # RE TRAIN THE POST PROC no bias mit BASE MODELS! PASS IT INTO THE MODELS ON INIT. save it in self.
+            self._base_models = {}  # set to none and train when needed by _get_model
 
-        rep = 0
-        while (rep < repetitions):
-            if not same_data_split: self._data.new_data_split()
-            
-            X, y = self._data.get_train_data()
-            model.train(X, y, sensitive_attr, ml_method, bias_ml_method, other)
+            # run each test config
+            for conf in test_configs:
+                self._run_test(conf, save_intermid_results)
 
-            X, y = self._data.get_test_data()
-            predict = lambda x: model.predict(x.copy(), other)
-            rep_preds = predict(X)
+            # only update the data split for each data in self._initd_data dict. (the first it will have the same default)
+            # -> the data split is only the same if the preproc is also the same (otherwise not comparable)
+            self._update_all_data_splits()
+
+        # print all accumulated evals to file
+        self._results_writer.write_final_results()
+
+    def _run_test(self, config: TestConfig, save_intermid: bool):
+        retrys = 0
+        model = self._get_model(config)
+        data = self._get_dataset(config.preprocessing)
+
+        while True:
+            X, y = data.get_train_data()
+            model.fit(X, y)
+
+            X, y = data.get_test_data()
+            predict = lambda x: model.predict(x.copy())  # used just for fr
+            self._preds = predict(X)
             try:
-                evals = self._evaluate(Metrics(X, y, rep_preds, predict), metric_names, sensitive_attr)
+                evals = self._evaluate(
+                    Metrics(X, y, self._preds, predict), config.sensitive_attr
+                )
             except MetricException as e:
-                print("invalid metric on rep ", rep,  e)
+                print("invalid metric, attmpt nr:", retrys, e)
+                retrys += 1
+                if retrys == MAX_RETRY:
+                    break
+                #   TODO: should i write something to file abt the fail or at least print
             else:
-                rep+=1
+                self._results_writer.add_result(config, evals, save_intermid)
+                break
 
-                self._acc_evals(evals)
-                self._preds.append(rep_preds)
-
-                if repetitions==1 or (self.OPT_SAVE_INTERMID in other and other[self.OPT_SAVE_INTERMID]):
-                    self.save_test_results(evals, dataset, bias_mit, ml_method, bias_ml_method, sensitive_attr, same_data_split, other)
-
-        if repetitions!=1:
-            self.save_test_results(self._evals, dataset, bias_mit, ml_method, bias_ml_method, sensitive_attr, same_data_split, other)
-
-    def get_last_run_preds(self): 
+    def get_last_run_preds(self):
+        """for debugging. only really useful when running just a single config and a single rep"""
         return self._preds
 
     def get_exceptions(self):
+        """for debugging: get exceptions from the last run"""
         return self._exceptions
 
-    def get_last_mean_evals(self):
-        return {key: [np.average(self._evals[key])] for key in self._evals}
+    # def get_last_data_split(self):
+    #    """for debugging"""
+    #    return *self._data.get_test_data(), *self._data.get_train_data()
 
-    def get_last_data_split(self):
-        # in case neded for debugging:)
-        return *self._data.get_test_data(), *self._data.get_train_data()
-    
-    def _acc_evals(self, evals):
-        if self._evals is None:
-            self._evals = {key:[val] for (key,val) in evals.items()}
-        else:
-            for (key, val) in evals.items():
-                self._evals[key].append(val)
-
-    def _evaluate(self, metrics: Metrics, metric_names: List[str], sensitive_attr):
+    def _evaluate(self, metrics: Metrics, sensitive_attr):
         evals = {}
-        for name in metric_names:
+        for name in self._metric_names:
             try:
                 if name in Metrics.get_subgroup_dependant():
-                    evals[name] = (metrics.get(name, sensitive_attr))
+                    evals[name] = metrics.get(name, sensitive_attr)
                 elif name in Metrics.get_attribute_dependant():
                     for attr in sensitive_attr:
-                        evals[attr + '|' + name] = (metrics.get(name, attr))
+                        evals[attr + "|" + name] = metrics.get(name, attr)
                 else:
-                    evals[name] = (metrics.get(name))
+                    evals[name] = metrics.get(name)
             except MetricException as e:
-                self._exceptions.append([e,name])
+                self._exceptions.append([e, name])
                 raise e
         return evals
 
-    def _get_dataset(self, name:str, preprocessing:str) -> Data:
-        dataset_description = name if not preprocessing else name+preprocessing
-        if dataset_description in self._initd_data:
-            return self._initd_data[dataset_description]
+    def _get_dataset(self, preproc: str) -> Data:
+        # allows for diff preproc
+        dataset_descr = (
+            self._dataset_name if not preproc else self._dataset_name + preproc
+        )
+        if dataset_descr in self._initd_data:
+            return self._initd_data[dataset_descr]
 
         data = None
-        if name == self.ADULT_D:
-            data = AdultData(preprocessing)
-        elif name == self.COMPAS_D:
-            data = CompasData(preprocessing)
-        elif name == self.MEPS_D:
-            data = MEPSData(preprocessing)
-        elif name == self.GERMAN_D:
-            data = GermanData(preprocessing)
-        elif name == self.DUMMY_D:
-            data = DummyData(preprocessing)
+        if self._dataset_name == self.ADULT_D:
+            data = AdultData(preproc)
+        elif self._dataset_name == self.COMPAS_D:
+            data = CompasData(preproc)
+        elif self._dataset_name == self.MEPS_D:
+            data = MEPSData(preproc)
+        elif self._dataset_name == self.GERMAN_D:
+            data = GermanData(preproc)
+        elif self._dataset_name == self.DUMMY_D:
+            data = DummyData(preproc)
         else:
-            raise RuntimeError("Incorrect dataset name ", name)
+            raise RuntimeError("Incorrect dataset name ", self._dataset_name)
 
-        self._initd_data[dataset_description] = data
+        self._initd_data[dataset_descr] = data
         return data
 
-    def _get_model(self, name, other) -> Model:
-        if name == self.FAIRMASK:
-            return FairMaskModel(other)
+    def _get_model(self, config: TestConfig) -> Model:
+        # if the same model previously initialized (likely for use as a base model for post proc)
+        descr = self._get_model_descr(config)
+        if descr in self._base_models:
+            return self._base_models[descr]
+
+        name = config.bias_mit
+        if name is None or name == self.BASE_ML:
+            return BaseModel(config)
         elif name == self.FAIRBALANCE:
-            return FairBalanceModel(other)
-        elif name == self.BASE_ML:
-            return BaseModel(other)
+            return FairBalanceModel(config)
         elif name == self.REWEIGHING:
-            return ReweighingModel(other)
-        elif name == self.FYP:
-            return FypModel(other)
+            return ReweighingModel(config)
+        elif name == self.FAIRMASK:
+            return FairMaskModel(config, self._get_base_model(config))
+        elif name == self.FYP_VAE:
+            return VAEMaskModel(config, self._get_base_model(config))
         else:
             raise RuntimeError("Incorrect method name ", name)
 
-    def save_test_results(self, evals: Dict[str, Any], dataset: str,
-                          bias_mit: str, ml_method: str, bias_ml_method: str,
-                          sensitive_attr: List[str], same_data_split, other):
-        nr_samples = np.size(list(evals.values())[0])
+    def _get_base_model(self, config: TestConfig) -> Model:
+        base_descr = self._get_model_descr(config.get_base_model_config())
+        self._check_base_model(config)
 
-        entry = {
-            "timestamp": [pd.Timestamp.now()],
-            "nr samples": [nr_samples],
-            "same data split": [same_data_split],
-            "Dataset": [dataset],
-            "Bias Mitigation": [bias_mit],
-            "ML method": [ml_method],
-            "ML bias mit": [bias_ml_method],
-            "Sensitive attrs": [sensitive_attr],
-            "other": [other],
-        }
+        if base_descr not in self._base_models:
+            # train a base model with no bias mit (unique for every prproc+ml_method)
+            X, y = self._get_dataset(config.preprocessing).get_train_data()
+            model = self._get_model(config.get_base_model_config())
+            model.fit(X, y)
+            self._base_models[base_descr] = model
 
-        entry.update({key: [np.average(evals[key])] for key in evals})
-        entry.update({"VAR|"+key: [np.var(evals[key])] for key in evals})
-        res = pd.DataFrame(entry)
+        return self._base_models[base_descr]
 
+    def _check_base_model(self, config: TestConfig):
+        # check that the base model is not post-proc
+        if config.base_model_bias_mit in self.POST_PROC_METHODS:
+            raise RuntimeError(
+                "Post processing method used as a base model for another", config
+            )
 
-        if self._file and path.exists(self._file):
-            res = pd.concat([res, pd.read_csv(self._file)], ignore_index=True)
-        res.to_csv(self._file, index=False)
+    def _get_model_descr(self, config: TestConfig) -> str:
+        model = config.bias_mit if config.bias_mit else self.BASE_ML
+        preproc = "" if not config.preprocessing else config.preprocessing
+        return "-".join([config.ml_method, preproc, model])
+
+    def _check_sensitive_attributes_and_init_datasets(
+        self, test_configs: List[TestConfig]
+    ):
+        """ensures that a dataset is initialised per each used preproc method
+        and that configs with attributes=None are replaced with all the possible columns from the dataset
+        """
+        for conf in test_configs:
+            data = self._get_dataset(conf.preprocessing)
+            if conf.sensitive_attr is None:
+                conf.sensitive_attr = data.get_sensitive_column_names()
+
+    def _update_all_data_splits(self):
+        for _, data in self._initd_data.items():
+            data.new_data_split()

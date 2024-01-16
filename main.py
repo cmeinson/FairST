@@ -1,43 +1,119 @@
 import os
 from src import *
+import torch
 
-# Just an example for now
+torch.autograd.set_detect_anomaly(True)
 
-n_repetitions = 5 
-same_data_split = False
-results_filename = "ehhhheeeee"
-other = {Tester.OPT_SAVE_INTERMID: False}
 
-#other_fb = other.copy()
-#other_fb[BaseModel.OPT_FBALANCE] = True
-
-datasets =  [ Tester.ADULT_D, Tester.COMPAS_D]#, Tester.GERMAN_D, Tester.ADULT_D,]
-
-base_it = 300
-def other_it(it_2):
-    return {"iter_1": base_it - it_2, "iter_2": int(it_2*1.5)}
-
-mls = [
-       (Tester.BASE_ML, Model.NN_C, None, None, other | {"iter_1": base_it}), 
-       #(Tester.FYP, Model.NN_C, None, None, other | other_it(498)),
-       #(Tester.FYP, Model.NN_C, None, None, other | other_it(470)),
-       #(Tester.FYP, Model.NN_C, None, None, other | other_it(400)),
-       (Tester.FYP, Model.NN_C, None, None, other | other_it(300)),
-       (Tester.FYP, Model.NN_C, None, None, other | other_it(200)),
-       #(Tester.FYP, Model.NN_C, None, None, other | other_it(100)),
-       (Tester.FYP, Model.NN_C, None, None, other | other_it(50)),
-       #(Tester.FYP, Model.NN_C, None, None, other | other_it(10)),
-       
-       (Tester.FAIRMASK, Model.NN_C, Model.DT_R, None, other | {"iter_1": base_it}),
-       (Tester.REWEIGHING, Model.NN_C, None, None, other | {"iter_1": base_it})    
-]
-metric_names = [Metrics.ACC, Metrics.PRE, Metrics.REC, Metrics.AOD, Metrics.EOD, Metrics.SPD, Metrics.DI, Metrics.SF]
+epochs = 1250
+n_repetitions = 10
+results_filename = 'test'
+results_filename = "before_after_mask_proc"#"multiple_maps_"
+other = {}
 results_file = os.path.join("results",results_filename +".csv")
 
 
-if __name__ == "__main__":
-    tester = Tester(results_file)
-    for dataset in datasets:
-        for bias_mit, method, method2, pre, oth in mls:
-            print("RUNIN",bias_mit,oth )
-            tester.run_test(metric_names, dataset, bias_mit, method, method2, n_repetitions, same_data_split, data_preprocessing=pre, other = oth, sensitive_attr=['sex'])
+datasets = [Tester.ADULT_D, Tester.COMPAS_D] #[Tester.ADULT_D,  Tester.COMPAS_D]#, Tester.GERMAN_D, Tester.ADULT_D,], Tester.COMPAS_D, 
+latent_dims = [25, 10]
+metric_names = [Metrics.ACC, Metrics.PRE, Metrics.REC, Metrics.AOD, Metrics.EOD, Metrics.SPD, Metrics.DI, Metrics.SF, Metrics.DF]
+
+
+# TODO: why is race DI increased?? while everything else is better -> as it stribes toward 1. use DI_FM instead for 0 target
+
+# TODO: fix the predict function! with the ppredict proba equivalent for each model 
+# TODO: need fancier benchmarks. esp if the combo with rw works.
+
+# TODO: add eq weighting for all subgroups
+"""
+curent oppinions:
+
+BEST: 
+LP, P, KP, F (?)
+SOLID: 
+FP, LK, LF (laybe more weight for L and F)
+Try With other weights:
+L, (more L weight)
+K, (lower K weight)
+FK .... meh
+"""
+
+losses = [
+    [VAEMaskConfig.FLIPPED_ADV_LOSS,        VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS],   # 0 - 4 ish x 0.1 # : LESS  weight 100 # TODO: 10 more?? maybe 50
+    [VAEMaskConfig.POS_VECTOR_LOSS,         VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS], # 0.000 002 - 0 x 1000 # . INCR WEIGHT 1000
+    [VAEMaskConfig.KL_SENSITIVE_LOSS, VAEMaskConfig.POS_VECTOR_LOSS,        VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS],
+    [VAEMaskConfig.LATENT_S_ADV_LOSS, VAEMaskConfig.POS_VECTOR_LOSS,        VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS],
+]
+
+losses = [
+    #[VAEMaskConfig.KL_DIV_LOSS], # 0.1 - 0.0001 x 0.01 # easy to optim
+    #[VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS],  # 0.07 - 0.0169 x 10
+    #[VAEMaskConfig.LATENT_S_ADV_LOSS,       VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS], # 0 - 10 ish x 0.1 # : could try to reduce a bit ??? not mucg tho. depends if its the only bias mit??
+    ##[VAEMaskConfig.FLIPPED_ADV_LOSS,        VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS],   # 0 - 4 ish x 0.1 # : LESS  weight 100 # TODO: 10 more?? maybe 50
+    ##[VAEMaskConfig.KL_SENSITIVE_LOSS,       VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS], # 0.001 - 0.000 001 tho this is overdoing it x 100 . INCREASE WEIGHT 100
+    ##[VAEMaskConfig.POS_VECTOR_LOSS,         VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS], # p should be used together with some biaas mit. it mostly imporves acc
+    ####[VAEMaskConfig.KL_SENSITIVE_LOSS, VAEMaskConfig.POS_VECTOR_LOSS,        VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS],
+    #[VAEMaskConfig.FLIPPED_ADV_LOSS,  VAEMaskConfig.KL_SENSITIVE_LOSS,      VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS],
+    #[VAEMaskConfig.FLIPPED_ADV_LOSS,  VAEMaskConfig.POS_VECTOR_LOSS,        VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS],
+    ####[VAEMaskConfig.LATENT_S_ADV_LOSS, VAEMaskConfig.POS_VECTOR_LOSS,        VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS],
+    #[VAEMaskConfig.LATENT_S_ADV_LOSS, VAEMaskConfig.KL_SENSITIVE_LOSS,      VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS],
+    #[VAEMaskConfig.LATENT_S_ADV_LOSS, VAEMaskConfig.FLIPPED_ADV_LOSS,       VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS],
+]
+
+losses = [
+    [VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS],
+    [VAEMaskConfig.POS_VECTOR_LOSS,         VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS], # 0.000 002 - 0 x 1000 # . INCR WEIGHT 1000
+    [VAEMaskConfig.KL_SENSITIVE_LOSS, VAEMaskConfig.POS_VECTOR_LOSS,        VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS],
+    [VAEMaskConfig.FLIPPED_ADV_LOSS,  VAEMaskConfig.POS_VECTOR_LOSS,        VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS],
+    [VAEMaskConfig.LATENT_S_ADV_LOSS, VAEMaskConfig.POS_VECTOR_LOSS,        VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS],
+    [VAEMaskConfig.LATENT_S_ADV_LOSS, VAEMaskConfig.KL_SENSITIVE_LOSS,      VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS],
+]
+
+for l in losses:
+    for dataset, dim in zip(datasets, latent_dims):
+        #fyp_config.config_loss(VAEMaskConfig.KL_DIV_LOSS, weight = w[0])
+        #fyp_config.config_loss(VAEMaskConfig.RECON_LOSS, weight = w[1])
+        #fyp_config.config_loss(VAEMaskConfig.LATENT_S_ADV_LOSS, weight = w[2])
+
+        for s in [ ["sex","race"], ["race"],["sex"]]: # ["race"] ["sex","race"]  ["sex","race"],  ,["race"],["sex"]
+            fyp_config = VAEMaskConfig(epochs=epochs, latent_dim=dim, lr=0.011, losses_used=l)
+            print(fyp_config)
+            mls = [
+                TestConfig(Tester.FYP_VAE, Model.LG_R, other={VAEMaskModel.VAE_MASK_CONFIG: fyp_config}, sensitive_attr=s),
+                TestConfig(Tester.BASE_ML, Model.LG_R , sensitive_attr = s),   
+                TestConfig(Tester.FAIRMASK, Model.LG_R, Model.DT_R, sensitive_attr=s),
+                TestConfig(Tester.FAIRBALANCE, Model.LG_R, sensitive_attr=s),
+                TestConfig(Tester.REWEIGHING, Model.LG_R, sensitive_attr=s),
+
+                TestConfig(Tester.FYP_VAE, Model.NN_old, other={VAEMaskModel.VAE_MASK_CONFIG: fyp_config}, sensitive_attr=s),
+                TestConfig(Tester.BASE_ML, Model.NN_old , sensitive_attr = s),   
+                TestConfig(Tester.FAIRMASK, Model.NN_old, Model.DT_R, sensitive_attr=s),
+                TestConfig(Tester.BASE_ML, Model.NN_old, sensitive_attr=s),   
+                TestConfig(Tester.BASE_ML, Model.NN_old, sensitive_attr=s),   
+
+                TestConfig(Tester.FYP_VAE, Model.RF_C, other={VAEMaskModel.VAE_MASK_CONFIG: fyp_config}, sensitive_attr=s),
+                TestConfig(Tester.BASE_ML, Model.RF_C , sensitive_attr = s),   
+                TestConfig(Tester.FAIRMASK, Model.RF_C, Model.DT_R, sensitive_attr=s),
+                TestConfig(Tester.FAIRBALANCE, Model.RF_C, sensitive_attr=s),
+                TestConfig(Tester.REWEIGHING, Model.RF_C, sensitive_attr=s),
+            ]
+
+            mls = [  
+                TestConfig(Tester.FYP_VAE, Model.LG_R, other={VAEMaskModel.VAE_MASK_CONFIG: fyp_config}, sensitive_attr=s), #base_model_bias_mit=Tester.REWEIGHING
+                TestConfig(Tester.BASE_ML, Model.LG_R , sensitive_attr = s),   
+                TestConfig(Tester.FAIRMASK, Model.LG_R, Model.DT_R, sensitive_attr=s),
+                TestConfig(Tester.FAIRBALANCE, Model.LG_R, sensitive_attr=s),
+                TestConfig(Tester.REWEIGHING, Model.LG_R, sensitive_attr=s),
+                
+                TestConfig(Tester.FYP_VAE, Model.NN_old, other={VAEMaskModel.VAE_MASK_CONFIG: fyp_config}, sensitive_attr=s),
+                TestConfig(Tester.BASE_ML, Model.NN_old , sensitive_attr = s),   
+                TestConfig(Tester.FAIRMASK, Model.NN_old, Model.DT_R, sensitive_attr=s),
+                TestConfig(Tester.BASE_ML, Model.NN_old, sensitive_attr=s),   
+                TestConfig(Tester.BASE_ML, Model.NN_old, sensitive_attr=s),  
+            ]
+            
+            results_file = os.path.join("results",results_filename +"".join(s)+".csv")
+            #results_file = os.path.join("results",results_filename +".csv")
+            # TEST
+            tester = Tester(results_file, dataset, metric_names)
+            tester.run_tests(mls, n_repetitions, save_intermid_results=True)
+
