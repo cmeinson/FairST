@@ -6,15 +6,15 @@ torch.autograd.set_detect_anomaly(True)
 
 
 epochs = 1250
-n_repetitions = 4
+n_repetitions = 10
 results_filename = 'test'
-results_filename = "muliple_maps_multiple_attrs"#"multiple_maps_"
+results_filename = "before_after_mask_proc"#"multiple_maps_"
 other = {}
 results_file = os.path.join("results",results_filename +".csv")
 
 
 datasets = [Tester.ADULT_D, Tester.COMPAS_D] #[Tester.ADULT_D,  Tester.COMPAS_D]#, Tester.GERMAN_D, Tester.ADULT_D,], Tester.COMPAS_D, 
-latent_dims = [30, 10]
+latent_dims = [25, 10]
 metric_names = [Metrics.ACC, Metrics.PRE, Metrics.REC, Metrics.AOD, Metrics.EOD, Metrics.SPD, Metrics.DI, Metrics.SF, Metrics.DF]
 
 
@@ -60,8 +60,8 @@ losses = [
 ]
 
 losses = [
-    #[VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS],
-    #[VAEMaskConfig.POS_VECTOR_LOSS,         VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS], # 0.000 002 - 0 x 1000 # . INCR WEIGHT 1000
+    [VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS],
+    [VAEMaskConfig.POS_VECTOR_LOSS,         VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS], # 0.000 002 - 0 x 1000 # . INCR WEIGHT 1000
     [VAEMaskConfig.KL_SENSITIVE_LOSS, VAEMaskConfig.POS_VECTOR_LOSS,        VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS],
     [VAEMaskConfig.FLIPPED_ADV_LOSS,  VAEMaskConfig.POS_VECTOR_LOSS,        VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS],
     [VAEMaskConfig.LATENT_S_ADV_LOSS, VAEMaskConfig.POS_VECTOR_LOSS,        VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS],
@@ -74,7 +74,7 @@ for l in losses:
         #fyp_config.config_loss(VAEMaskConfig.RECON_LOSS, weight = w[1])
         #fyp_config.config_loss(VAEMaskConfig.LATENT_S_ADV_LOSS, weight = w[2])
 
-        for s in [ ["sex","race"]]: # ["race"] ["sex","race"]  ["sex","race"],  ,["race"],["sex"]
+        for s in [ ["sex","race"], ["race"],["sex"]]: # ["race"] ["sex","race"]  ["sex","race"],  ,["race"],["sex"]
             fyp_config = VAEMaskConfig(epochs=epochs, latent_dim=dim, lr=0.011, losses_used=l)
             print(fyp_config)
             mls = [
@@ -103,6 +103,12 @@ for l in losses:
                 TestConfig(Tester.FAIRMASK, Model.LG_R, Model.DT_R, sensitive_attr=s),
                 TestConfig(Tester.FAIRBALANCE, Model.LG_R, sensitive_attr=s),
                 TestConfig(Tester.REWEIGHING, Model.LG_R, sensitive_attr=s),
+                
+                TestConfig(Tester.FYP_VAE, Model.NN_old, other={VAEMaskModel.VAE_MASK_CONFIG: fyp_config}, sensitive_attr=s),
+                TestConfig(Tester.BASE_ML, Model.NN_old , sensitive_attr = s),   
+                TestConfig(Tester.FAIRMASK, Model.NN_old, Model.DT_R, sensitive_attr=s),
+                TestConfig(Tester.BASE_ML, Model.NN_old, sensitive_attr=s),   
+                TestConfig(Tester.BASE_ML, Model.NN_old, sensitive_attr=s),  
             ]
             
             results_file = os.path.join("results",results_filename +"".join(s)+".csv")
