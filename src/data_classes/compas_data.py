@@ -28,7 +28,7 @@ class CompasData(Data):
         else:
             dataset = self.my_columns(dataset)
 
-        return self.std_data_transform(dataset)
+        return dataset
     
     def _get_labels(self, dataset: pd.DataFrame) -> np.array:
         """Select Y label column"""

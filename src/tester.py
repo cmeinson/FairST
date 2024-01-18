@@ -81,8 +81,8 @@ class Tester:
 
     def _run_test(self, config: TestConfig, save_intermid: bool):
         retrys = 0
-        model = self._get_model(config)
         data = self._get_dataset(config.preprocessing)
+        model = self._get_model(config)
 
         while True:
             X, y = data.get_train_data()
@@ -174,7 +174,8 @@ class Tester:
         elif name == self.FAIRMASK:
             return FairMaskModel(config, self._get_base_model(config))
         elif name == self.FYP_VAE:
-            return VAEMaskModel(config, self._get_base_model(config))
+            data = self._get_dataset(config.preprocessing)
+            return VAEMaskModel(config, self._get_base_model(config), data.post_mask_transform)
         else:
             raise RuntimeError("Incorrect method name ", name)
 

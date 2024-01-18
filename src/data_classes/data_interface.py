@@ -36,7 +36,7 @@ from keras.layers import Dense
 
 
 class Data:
-
+    name_split_symbol = ": cat="
     def __init__(self, file_name: str, preprocessing:str = None, test_ratio = 0.2) -> None:
         """
         - reads the according dataset from the data folder,
@@ -48,6 +48,10 @@ class Data:
         :param tests_ratio: determines the proportion of test data, defaults to 0.2
         :type tests_ratio: float, optional
         """
+        self._binary_columns = None # col_name: [og values]
+        self._one_hot_columns = None # og_col_name: [new cols]
+        self._transformed_column_names = None
+        
         self._test_ratio = test_ratio
         
         self._raw = pd.read_csv(file_name)
@@ -62,7 +66,8 @@ class Data:
         # selected preproc columns   
         # fit and apply trainsformer normalisation, one hot encoding (NOTE: keep track of sensitive columns_)
         # TODO; func that would reverse one hot enc for diplay opurposes?
-        self._X = self._get_columns(self.dataset_orig, preprocessing)
+        self._untransformed_cols = self._get_columns(self.dataset_orig, preprocessing)
+        self._X = self._std_data_transform(self._untransformed_cols)
   
         # data split
         self.new_data_split()
@@ -123,7 +128,8 @@ class Data:
         
         categorical_columns_selector = selector(dtype_include=object)
         categorical_columns = categorical_columns_selector(X)
-        categorical_processor = OneHotEncoder(handle_unknown = 'infrequent_if_exist')
+        name_combiner = lambda col, cat: col+self.name_split_symbol+cat
+        categorical_processor = OneHotEncoder(handle_unknown = 'infrequent_if_exist', feature_name_combiner=name_combiner) # NOTE: has inverse_transform
 
         transformer = ColumnTransformer([
             ('StandardScaler', numerical_processor, non_binary_numerical_columns),
@@ -132,16 +138,51 @@ class Data:
         
         return transformer
     
-    def std_data_transform(self, X):
-        # just normalisation no one hot
+    def _std_data_transform(self, X):      
         transformer = self._get_transformer_scaler(X)
         transformer.fit_transform(X)
-        X = transformer.transform(X)
+        X_new = transformer.transform(X)
         
-        transformed_column_names = transformer.get_feature_names_out()
+        self._transformed_column_names = transformer.get_feature_names_out()
+        self._save_transformer_column_types(transformer, X_new)
 
-        X = pd.DataFrame(X, columns=transformed_column_names, dtype=np.float32)
+        X_new = pd.DataFrame(X_new, columns=self._transformed_column_names, dtype=np.float32)
+        return X_new
+    
+      
+    def post_mask_transform(self, X: pd.DataFrame) -> pd.DataFrame:
+        for col_name, og_values in self._binary_columns.items():
+            X[col_name] = X[col_name].map(lambda x: self._round_to_closest(x, og_values))
+            
+        for og_name, new_cols in self._one_hot_columns.items():
+            max_values = X[new_cols].max(axis=1)
+            X[new_cols] = np.where(X[new_cols].eq(max_values, axis=0), 1, 0)
         return X
+            
+    
+    def _save_transformer_column_types(self, transformer, X_new):
+        bin_slice = transformer.output_indices_["remainder"]
+        hot_slice = transformer.output_indices_["OneHotEncoder"]
+        
+        self._binary_columns = {} # col_name: [og values]
+        for i in range(bin_slice.start, bin_slice.stop):
+            col_name = self._transformed_column_names[i]
+            self._binary_columns[col_name] = np.unique(X_new[:, i])
+        
+        self._one_hot_columns = {} # og_col_name: [new cols]
+        for i in  range(hot_slice.start, hot_slice.stop):
+            new_col_name = self._transformed_column_names[i]
+            og_name, cat = new_col_name.split(self.name_split_symbol)
+            if og_name not in self._one_hot_columns:
+                self._one_hot_columns[og_name] = []
+            self._one_hot_columns[og_name].append(new_col_name)
+        
+  
+    def _round_to_closest(self, value, rounding_values):
+        return min(rounding_values, key=lambda x: abs(x - value))
+            
+        
+        
 
 
 

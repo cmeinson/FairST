@@ -18,13 +18,14 @@ from collections import Counter
 
 # TODO: no longer attr col last
 PRINT_FREQ = 50
+VERBOSE = True
 
 class VAEMaskModel(Model):
     VAE_MASK_CONFIG = "my model config"
 
     COUNTER = 0
 
-    def __init__(self, config: TestConfig, base_model: Model) -> None:
+    def __init__(self, config: TestConfig, base_model: Model, post_mask_transform: callable) -> None:
         """Idk does not really do much yet I think:)
 
         :param other: any hyper params we need to pass, defaults to {}
@@ -36,6 +37,7 @@ class VAEMaskModel(Model):
         self._column_names = None
         self._vm_config = config.other[self.VAE_MASK_CONFIG]
         self._mask_weights = {}
+        self.post_mask_transform = post_mask_transform
 
 
     def fit(self, X: pd.DataFrame, y: np.array):
@@ -71,21 +73,27 @@ class VAEMaskModel(Model):
         """
         preds = np.zeros(len(X))
         for attrs, w in self._mask_weights.items():
-            X_masked = self._mask(torch.tensor(X.values, dtype=torch.float32), list(attrs)).detach().numpy()
+            X_masked = self._mask(X, list(attrs))
             preds = preds + (self._model.predict(X_masked, binary=False)*w)
         
         return self._binarise(preds)      
         
-    def _mask(self, X, mask_values: List[int]):
-        print("BEFORE MASK")
-        print(X)
+    def _mask(self, X: pd.DataFrame, mask_values: List[int]) -> pd.DataFrame:
+
+        tensor = torch.tensor(X.values, dtype=torch.float32)
+        
+        if VERBOSE:
+            print("BEFORE MASK")
+            print(tensor)
         self._mask_model.eval()
         
-        X_out, *_ = self._mask_model.forward(X, mask_values) 
-        print("AFTER MASK")
-        print(X_out)  
+        tensor_out, *_ = self._mask_model.forward(tensor, mask_values) 
 
-        return X_out
+        df = pd.DataFrame(tensor_out.detach().numpy(), columns=self._column_names)
+        if VERBOSE:
+            print("AFTER MASK")
+            print(self.post_mask_transform(df))  
+        return self.post_mask_transform(df)
     
     def _train_vae(self, X: Tensor, y: np.array, epochs = 500):
         self.COUNTER = 0
