@@ -79,7 +79,6 @@ class VAEMaskModel(Model):
         return self._binarise(preds)      
         
     def _mask(self, X: pd.DataFrame, mask_values: List[int]) -> pd.DataFrame:
-
         tensor = torch.tensor(X.values, dtype=torch.float32)
         
         if VERBOSE:
@@ -87,11 +86,12 @@ class VAEMaskModel(Model):
             print(tensor)
         self._mask_model.eval()
         
-        tensor_out, *_ = self._mask_model.forward(tensor, mask_values) 
-
+        tensor_out, *_ = self._mask_model.forward(tensor, mask_values, use_std=False) 
         df = pd.DataFrame(tensor_out.detach().numpy(), columns=self._column_names)
+        
         if VERBOSE:
             print("AFTER MASK")
+            print(df)
             print(self.post_mask_transform(df))  
         return self.post_mask_transform(df)
     

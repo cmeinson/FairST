@@ -73,9 +73,11 @@ class VAE(Module):
         z = mu + eps * std
         return z
     
-    def forward(self, image, attrs = None):
+    def forward(self, image, attrs = None, use_std = True):
         mu, std, attr_cols = self.encoder(image, attrs)
-        z = self.reparametrization_trick(mu, std)
+        z = mu
+        if use_std:
+            z = self.reparametrization_trick(mu, std)
         full_z = self.add_attr_cols(z, attr_cols)
         decoded_image = self.decoder(full_z)
 

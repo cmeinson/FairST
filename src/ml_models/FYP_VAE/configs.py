@@ -9,7 +9,7 @@ class VAEMaskConfig:
     def __init__(self, epochs = 500, latent_dim = 10, vae_layers = (75, 60, 30, 15), lr = 0.007, losses_used = [KL_DIV_LOSS, RECON_LOSS, LATENT_S_ADV_LOSS], mask_values = None):
         self.epochs = epochs
         self.latent_dim = latent_dim
-        self.vae_layers = vae_layers
+        self.vae_layers = tuple(max(i,latent_dim) for i in vae_layers)
         self.lossed_used = losses_used
         self.lr = lr
         self.loss_configs = {}
