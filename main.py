@@ -93,11 +93,11 @@ for l in losses:
             ]
 
             mls = [  
-                TestConfig(Tester.FYP_VAE, Model.LG_R, other={VAEMaskModel.VAE_MASK_CONFIG: fyp_config}, sensitive_attr=s), #base_model_bias_mit=Tester.REWEIGHING
-                TestConfig(Tester.BASE_ML, Model.LG_R , sensitive_attr = s),   
-                TestConfig(Tester.FAIRMASK, Model.LG_R, Model.DT_R, sensitive_attr=s),
-                TestConfig(Tester.FAIRBALANCE, Model.LG_R, sensitive_attr=s),
-                TestConfig(Tester.REWEIGHING, Model.LG_R, sensitive_attr=s),
+                TestConfig(Tester.FYP_VAE, Model.NB_C, other={VAEMaskModel.VAE_MASK_CONFIG: fyp_config}, sensitive_attr=s), #base_model_bias_mit=Tester.REWEIGHING
+                TestConfig(Tester.BASE_ML, Model.NB_C , sensitive_attr = s),   
+                TestConfig(Tester.FAIRMASK, Model.NB_C, Model.DT_R, sensitive_attr=s),
+                TestConfig(Tester.FAIRBALANCE, Model.NB_C, sensitive_attr=s),
+                TestConfig(Tester.REWEIGHING, Model.NB_C, sensitive_attr=s),
                 
                 TestConfig(Tester.FYP_VAE, Model.MLP_C, other={VAEMaskModel.VAE_MASK_CONFIG: fyp_config}, sensitive_attr=s),
                 TestConfig(Tester.BASE_ML, Model.MLP_C , sensitive_attr = s),   
