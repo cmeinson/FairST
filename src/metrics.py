@@ -149,7 +149,7 @@ class Metrics:
     
     def spd(self, attribute: str) -> float:
         cm0, cm1 = self._get_attribute_cms(attribute)
-        return (cm1['pr'] - cm0['pr'])
+        return (cm0['pr'] - cm1['pr'])
     
     def di(self, attribute: str) -> float:
         cm0, cm1 = self._get_attribute_cms(attribute)
