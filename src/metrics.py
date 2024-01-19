@@ -157,12 +157,12 @@ class Metrics:
             return 1 # NOTE! 1 if they are the same!!
         if cm1['pr'] == 0:
             raise MetricException("DI fail pr1 = 0", attribute)
-        return cm0['pr']/cm1['pr']
+        return cm0['pr']/cm1['pr'] # pos if underrepresented preferred
     
     def di_fm(self, attribute: str) -> float:
         cm0, cm1 = self._get_attribute_cms(attribute)
         if cm0['pr'] == 0  and cm1['pr'] == 0:
-            return 1 # NOTE! 1 if they are the same!!
+            return 0 # NOTE! 0 if they are the same!!
         if cm0['pr'] == 0:
             raise MetricException("DI FM fail pr0 = 0", attribute)
         return abs(1-cm1['pr']/cm0['pr'])
