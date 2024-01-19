@@ -23,6 +23,7 @@ class Metrics:
     AOD = "[AOD] Average Odds Difference"
     EOD = "[EOD] Equal Opportunity Difference"
     SPD = "[SPD] Statistical Parity Difference"
+    
     DI = "[DI] Disparate Impact"
     DI_FM = "[DI_FM] Disparate Impact the way it was implemented in FairMask"
     FR = "[FR] Flip Rate"
@@ -37,6 +38,10 @@ class Metrics:
 
     M_EOD = "[MEOD] M Equal Opportunity Difference"
     M_AOD = "[MAOD] M Average Odds Difference"
+    
+    A_AOD = "[A_AOD] Absolute Average Odds Difference"
+    A_EOD = "[A_EOD] Absolute Equal Opportunity Difference"
+    A_SPD = "[A_SPD] Absolute Statistical Parity Difference"
 
     warnings.simplefilter("ignore")
 
@@ -65,7 +70,7 @@ class Metrics:
     @classmethod
     def get_attribute_dependant(cls):
         # metrics that need a single attribute as input
-        return [Metrics.AOD, Metrics.EOD, Metrics.SPD, Metrics.DI, Metrics.DI_FM, Metrics.FR, Metrics.ONE_SF, Metrics.ONE_DF]
+        return [Metrics.AOD, Metrics.EOD, Metrics.SPD, Metrics.A_AOD, Metrics.A_EOD, Metrics.A_SPD, Metrics.DI, Metrics.DI_FM, Metrics.FR, Metrics.ONE_SF, Metrics.ONE_DF]
 
     @classmethod
     def get_attribute_independant(cls):
@@ -83,6 +88,9 @@ class Metrics:
             self.AOD:   self.aod,
             self.EOD:   self.eod,
             self.SPD:   self.spd,
+            self.A_AOD: lambda attr: abs(self.aod(attr)),
+            self.A_EOD: lambda attr: abs(self.eod(attr)),
+            self.A_SPD: lambda attr: abs(self.spd(attr)),
             self.DI:    self.di,
             self.DI_FM: self.di_fm,
             self.M_EOD: self.meod,
@@ -133,15 +141,15 @@ class Metrics:
         # note that it is the abs aod
         cm0, cm1 = self._get_attribute_cms(attribute)
         diff = (cm0['fpr'] - cm1['fpr']) + (cm0['tpr'] - cm1['tpr'])
-        return abs(0.5 * diff)
+        return (0.5 * diff)
     
     def eod(self, attribute: str) -> float:
         cm0, cm1 = self._get_attribute_cms(attribute)
-        return abs(cm0['tpr'] - cm1['tpr'])
+        return (cm0['tpr'] - cm1['tpr'])
     
     def spd(self, attribute: str) -> float:
         cm0, cm1 = self._get_attribute_cms(attribute)
-        return abs(cm1['pr'] - cm0['pr'])
+        return (cm0['pr'] - cm1['pr'])
     
     def di(self, attribute: str) -> float:
         cm0, cm1 = self._get_attribute_cms(attribute)
@@ -149,12 +157,12 @@ class Metrics:
             return 1 # NOTE! 1 if they are the same!!
         if cm1['pr'] == 0:
             raise MetricException("DI fail pr1 = 0", attribute)
-        return cm0['pr']/cm1['pr']
+        return cm0['pr']/cm1['pr'] # pos if underrepresented preferred
     
     def di_fm(self, attribute: str) -> float:
         cm0, cm1 = self._get_attribute_cms(attribute)
         if cm0['pr'] == 0  and cm1['pr'] == 0:
-            return 1 # NOTE! 1 if they are the same!!
+            return 0 # NOTE! 0 if they are the same!!
         if cm0['pr'] == 0:
             raise MetricException("DI FM fail pr0 = 0", attribute)
         return abs(1-cm1['pr']/cm0['pr'])
