@@ -128,7 +128,7 @@ class Data:
         
         categorical_columns_selector = selector(dtype_include=object)
         categorical_columns = categorical_columns_selector(X)
-        name_combiner = lambda col, cat: col+self.name_split_symbol+cat
+        name_combiner = lambda col, cat: col+self.name_split_symbol+str(cat)
         categorical_processor = OneHotEncoder(handle_unknown = 'infrequent_if_exist', feature_name_combiner=name_combiner) # NOTE: has inverse_transform
 
         transformer = ColumnTransformer([

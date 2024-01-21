@@ -10,7 +10,7 @@ n_repetitions = 4
 results_filename = 'test'
 results_filename = "diff_epochs"#"multiple_maps_"
 other = {}
-#1500 seems like a good spot. 1250 good for now
+#1500 seems like a good spot. 1250 good for now. no need to go over 2
 
 #EXPERIMENTS RUNNING:
 # og: 
