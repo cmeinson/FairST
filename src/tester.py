@@ -11,6 +11,7 @@ from .ml_models import (
     BaseModel,
     ReweighingModel,
     Model,
+    FFVAE,
 )
 from .data_classes import AdultData, CompasData, GermanData, MEPSData, DummyData, Data
 from .metrics import Metrics, MetricException
@@ -32,6 +33,7 @@ class Tester:
     FAIRBALANCE = "FairBalance Bias Mitigation"
     FAIRMASK = "FairMask Bias Mitigation"
     FYP_VAE = "FYP VAE"
+    FFVAE = "FFVAE"
     REWEIGHING = "Reweighing Bias Mitigation"
     BASE_ML = "No Bias Mitigation"
 
@@ -173,6 +175,8 @@ class Tester:
             return ReweighingModel(config)
         elif name == self.FAIRMASK:
             return FairMaskModel(config, self._get_base_model(config))
+        elif name == self.FFVAE:
+            return FFVAE(config)
         elif name == self.FYP_VAE:
             data = self._get_dataset(config.preprocessing)
             return VAEMaskModel(config, self._get_base_model(config), data.post_mask_transform)

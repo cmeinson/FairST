@@ -63,9 +63,9 @@ LK (PERFECT!!! same acc as fm, rww but bias 2x better)
 LP (lol pretty much same very smol acc loss)
 
 MLP Adult:
-LP, FP , KP, (P decent)
+LP, FP 
 
-NB Adult:
+NB Adult: too much acc loss on all but fp
 FP (PERFECT!!!)
 P KP LP permissable. but bias bery shit!!!!
 
@@ -77,10 +77,10 @@ P not reliable
 RW works relly well here, cold try combining
 
 
-NB Germen:
+NB Germen: !!!! amazing results. acc increased
 LP (ACC and bias)
 FP (BIAS)
-perhaps KP
+KP incr bias!!
 
 MLP German:
 P WILDLY AMAZING (need more tests seems tooo good)
@@ -88,6 +88,10 @@ KP!!!!!! middle groung. AND STABE BIAS PERFORMANCE
 FP great!!!!!! no acc loss but better bias NOT STABLE....
 LP.... increased bias????    made bias swing all the way the other way
 FP and P unreliable!!!
+
+LG German:
+LP accuracy 
+FP, KP better bas
 
 # TODO: would it be valid to have some qs with onl 2 datasets whle ssome with more
 -------------------------------------------
@@ -120,6 +124,7 @@ losses = [
 
 losses = [
     #[VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS],
+    [VAEMaskConfig.LATENT_S_ADV_LOSS, VAEMaskConfig.POS_VECTOR_LOSS,        VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS], 
     [VAEMaskConfig.POS_VECTOR_LOSS,         VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS], # 0.000 002 - 0 x 1000 # . INCR WEIGHT 1000
     [VAEMaskConfig.KL_SENSITIVE_LOSS, VAEMaskConfig.POS_VECTOR_LOSS,        VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS],
     [VAEMaskConfig.FLIPPED_ADV_LOSS,  VAEMaskConfig.POS_VECTOR_LOSS,        VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS],

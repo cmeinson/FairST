@@ -47,6 +47,7 @@ class ResultsGrapher:
                 Tester.FAIRMASK: "B:FM",
                 Tester.FAIRBALANCE: "B:FB",
                 Tester.REWEIGHING: "B:RW",
+                Tester.FFVAE: "FFVAE",
             }
             return methods[row[ResultsReader.BIAS_MIT]]
 

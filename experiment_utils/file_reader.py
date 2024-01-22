@@ -134,13 +134,17 @@ class ResultsReader:
         df = self.get_filtered_df().reset_index()
         
         for index, row in df.iterrows():
-            base_row = self.df[
-                (self.df[self.ID] == row[self.ID]) & (self.df[self.DATASET] == row[self.DATASET]) & 
-                (self.df[self.ML] == row[self.ML]) & (self.df[self.ATTR] == row[self.ATTR]) & 
-                (self.df[self.BIAS_MIT] == base)
-                ]
-            for metric in self.metrics:
-                df.loc[index, metric] = row[metric] - base_row[metric].values[0]
+            try:
+                base_row = self.df[
+                    (self.df[self.ID] == row[self.ID]) & (self.df[self.DATASET] == row[self.DATASET]) & 
+                    (self.df[self.ML] == row[self.ML]) & (self.df[self.ATTR] == row[self.ATTR]) & 
+                    (self.df[self.BIAS_MIT] == base)
+                    ]
+                for metric in self.metrics:
+                    df.loc[index, metric] = row[metric] - base_row[metric].values[0]
+            except:
+                df.loc[index, metric] = 0
+                print("unable to find base for", index)
 
         return df
     
