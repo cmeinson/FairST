@@ -5,36 +5,15 @@ import torch
 torch.autograd.set_detect_anomaly(True)
 
 
-epochs = 1000
-n_repetitions = 4
-results_filename = 'test'
-results_filename = "ffvae_3_"#"multiple_maps_"
+epochs = 1300
+n_repetitions = 3
+results_filename = "LFR_"
 other = {}
 #1500 seems like a good spot. 1250 good for now. no need to go over 2
 
-#EXPERIMENTS RUNNING:
-# og: 
-# # 1 has with my new method
-# # 2 should have without the std !! SEEMS TO HAVE HELPED
-# # 3 SWITH VAE DIMS FROM 15
-# JUST ADULT:
-# # 4 just adult with same dims as before but min 30 !! SEEMS TO HAVE HELPED
-# # 5 just adult more epochs # SEEMS BIT MEH
-# # 6 less iterations more lr!!!!  / in new new  2
-# # 7 not abs!!!!  new new 3 and 4
-# # 8 not abs
-# # higher w for just reconstruction error???/
-# # SMALLER LATENT SPACE????
 
-
-# # 3 add more iterations
-
-
-# _new has without
-
-
-datasets = [Tester.ADULT_D]#, Tester.COMPAS_D] #[Tester.ADULT_D,  Tester.COMPAS_D]#, Tester.GERMAN_D, Tester.ADULT_D,], Tester.COMPAS_D, 
-latent_dims = [25]#[30]#, 10]
+datasets = [Tester.COMPAS_D]#, Tester.COMPAS_D] #[Tester.ADULT_D,  Tester.COMPAS_D]#, Tester.GERMAN_D, Tester.ADULT_D,], Tester.COMPAS_D, 
+latent_dims = [10]#[30]#, 10]
 metric_names = [Metrics.ACC, Metrics.PRE, Metrics.REC, Metrics.AOD, Metrics.EOD, Metrics.SPD, Metrics.DI_FM, Metrics.SF, Metrics.DF]
 
 
@@ -42,6 +21,8 @@ metric_names = [Metrics.ACC, Metrics.PRE, Metrics.REC, Metrics.AOD, Metrics.EOD,
 # TODO: fix the predict function! with the ppredict proba equivalent for each model 
 # TODO: need fancier benchmarks. esp if the combo with rw works.
 # TODO: try add eq weighting for all subgroups
+
+
 
 """
 curent oppinions:
@@ -104,33 +85,47 @@ losses = [
 
 losses = [
     [VAEMaskConfig.LATENT_S_ADV_LOSS, VAEMaskConfig.POS_VECTOR_LOSS,        VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS],
+    [VAEMaskConfig.KL_SENSITIVE_LOSS, VAEMaskConfig.POS_VECTOR_LOSS,        VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS],
+
 ]
 
-comment= ""
+# TODO: allow for multiple loss combos in an iteration!!!!!
 
-for l in losses:
+comment= "FYP"
+
+for e in range(6):
+    
     for dataset, dim in zip(datasets, latent_dims):
         #fyp_config.config_loss(VAEMaskConfig.KL_DIV_LOSS, weight = w[0])
         #fyp_config.config_loss(VAEMaskConfig.LATENT_S_ADV_LOSS, weight = w[2])
 
-        for s in [["sex"]]: #  ["sex","race"],["race"],["sex"]
-            fyp_config = VAEMaskConfig(epochs=epochs, latent_dim=dim, lr=0.014, losses_used=l)
-            #fyp_config.config_loss(VAEMaskConfig.RECON_LOSS, weight = 20)
-
-            print(fyp_config)
-    
-
-            mls = [  
-                TestConfig(Tester.FFVAE, Model.MLP_C, other={"c": comment, VAEMaskModel.VAE_MASK_CONFIG: fyp_config}, sensitive_attr=s), #base_model_bias_mit=Tester.REWEIGHING
-
-                TestConfig(Tester.FYP_VAE, Model.MLP_C, other={"c": comment, VAEMaskModel.VAE_MASK_CONFIG: fyp_config}, sensitive_attr=s), #base_model_bias_mit=Tester.REWEIGHING
+        for s in [ ["sex","race"],["race"]]: #  ["sex","race"],["race"],["sex"]
+   
+            vae_LG = [
+                TestConfig(Tester.FYP_VAE, Model.LG_R, sensitive_attr=s, other={"c": comment, VAEMaskModel.VAE_MASK_CONFIG:  
+                    VAEMaskConfig(epochs=epochs, latent_dim=dim, lr=0.014, losses_used=l)}) for l in losses
+                ]
+            mls_LG = vae_LG + [  
+                TestConfig(Tester.BASE_ML, Model.LG_R , sensitive_attr = s),   
+                TestConfig(Tester.FAIRMASK, Model.LG_R, Model.DT_R, sensitive_attr=s),
+                TestConfig(Tester.FAIRBALANCE, Model.LG_R, sensitive_attr=s),
+                TestConfig(Tester.REWEIGHING, Model.LG_R, sensitive_attr=s),
+                TestConfig(Tester.LFR, Model.LG_R, other={"c":"LFR"}, sensitive_attr = s), #base_model_bias_mit=Tester.REWEIGHING
+            ]
+            
+            vae_MLP = [
+                TestConfig(Tester.FYP_VAE, Model.MLP_C, sensitive_attr=s, other={"c": comment, VAEMaskModel.VAE_MASK_CONFIG:  
+                    VAEMaskConfig(epochs=epochs, latent_dim=dim, lr=0.014, losses_used=l)}) for l in losses
+                ]
+            mls_MLP = vae_MLP + [
                 TestConfig(Tester.BASE_ML, Model.MLP_C , sensitive_attr = s),   
                 TestConfig(Tester.FAIRMASK, Model.MLP_C, Model.DT_R, sensitive_attr=s),
-                #TestConfig(Tester.FAIRBALANCE, Model.MLP_C, sensitive_attr=s),
-                #TestConfig(Tester.REWEIGHING, Model.MLP_C, sensitive_attr=s),
+                TestConfig(Tester.LFR, Model.MLP_C, other={"c":"LFR"}, sensitive_attr = s), #base_model_bias_mit=Tester.REWEIGHING
                 
             ]
             
+            
+            mls = mls_LG #+ mls_MLP
             results_file = os.path.join("results",results_filename +"_".join(s)+".csv")
             #results_file = os.path.join("results",results_filename +".csv")
             tester = Tester(results_file, dataset, metric_names)

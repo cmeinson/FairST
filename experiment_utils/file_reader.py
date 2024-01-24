@@ -1,5 +1,6 @@
 import pandas as pd
 from src.tester import Tester
+import numpy as np
 
 class ResultsReader:
     # TODO: allor reading of multiple files
@@ -44,6 +45,8 @@ class ResultsReader:
         cols_to_drop = var_cols + self.DROP_COLUMNS
         df = df.drop(columns=cols_to_drop, axis=1)
     
+        df[self.ID] = np.floor(df[self.ID]).astype(int)
+
         non_metric_cols = self.FILTERABLE + [self.ID]
         self.metrics = [col for col in df.columns if col not in non_metric_cols]
         

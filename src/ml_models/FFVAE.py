@@ -13,7 +13,7 @@ import numpy as np
 from ..utils import TestConfig
 
 
-
+# NOTE: not functional
 class FFVAE(Model):
 
     def fit(self, X: pd.DataFrame, y: np.array):

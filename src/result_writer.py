@@ -58,9 +58,11 @@ class ResultsWriter:
         entry.update({key: [np.average(evals[key])] for key in evals})
         entry.update({"VAR|" + key: [np.var(evals[key])] for key in evals})
 
-        entry.update({"id": [self._experiment_id]})
+        entry.update({"id": [int(self._experiment_id)]})
 
         res = pd.DataFrame(entry)
+        
+
         self._append_to_file(res)
 
     def _append_to_file(self, res):
@@ -68,6 +70,9 @@ class ResultsWriter:
             res_new = res
             if path.exists(self._file_name):
                 res_new = pd.concat([res, pd.read_csv(self._file_name)], ignore_index=True)
+                
+            #formatters = {'id': '{:.0f}'.format}
+            res_new['id'] = res_new['id'].astype(int)
             res_new.to_csv(self._file_name, index=False)
         except IOError as e:
             root, extension = path.splitext(self._file_name)

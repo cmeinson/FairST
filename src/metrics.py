@@ -11,6 +11,8 @@ from sklearn.metrics import confusion_matrix
 class MetricException(Exception):
     pass
 
+# TODO: abs in sf and df
+
 class Metrics:
     # All available metrics:
     #performance metrics
