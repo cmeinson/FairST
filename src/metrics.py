@@ -204,9 +204,10 @@ class Metrics:
         cm2 = self._confusion_matrix(subgroup2)
         prob_sg1 = cm1[outcome] / len(subgroup1)
         prob_sg2 = cm2[outcome] / len(subgroup2)
+
         if (prob_sg1 == prob_sg2):
             return 1
-        elif prob_sg1==0 or prob_sg2==0:            
+        elif prob_sg1==0 or prob_sg2==0:   
             raise MetricException("DF fail")
         return prob_sg1 / prob_sg2
 
