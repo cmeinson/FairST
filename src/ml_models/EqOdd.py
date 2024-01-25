@@ -56,11 +56,11 @@ class EqOModel(Model):
         val_dataset_pred = BinaryLabelDataset(df=pd.concat([X_val, predictions_val_df], axis=1), label_names=['label'], protected_attribute_names=self._config.sensitive_attr)
 
         # Count the number of samples at each intersection of values
-        intersection_counts = pd.concat([X_val, predictions_val_df], axis=1).groupby(['label', 'race']).size().reset_index(name='count')
+        #intersection_counts = pd.concat([X_val, predictions_val_df], axis=1).groupby(['label', 'race']).size().reset_index(name='count')
 
         # Print the result
-        print("TRAIN")
-        print(intersection_counts)
+        #print("TRAIN")
+        #print(intersection_counts)
         
         # cost constraint of fnr will optimize generalized false negative rates, that of
         # fpr will optimize generalized false positive rates, and weighted will optimize
@@ -87,11 +87,11 @@ class EqOModel(Model):
         predictions_df = pd.DataFrame(data={'label': preds})
         
         # Count the number of samples at each intersection of values
-        intersection_counts = pd.concat([X.reset_index(drop=True), pd.DataFrame(data={'label': self._binarise(preds)})], axis=1).groupby(['label', 'race']).size().reset_index(name='count')
+        #intersection_counts = pd.concat([X.reset_index(drop=True), pd.DataFrame(data={'label': self._binarise(preds)})], axis=1).groupby(['label', 'race']).size().reset_index(name='count')
 
         # Print the result
-        print("TEST")
-        print(intersection_counts)
+        #print("TEST")
+        #print(intersection_counts)
         
         dataset_pred = BinaryLabelDataset(df=pd.concat([X.reset_index(drop=True), predictions_df], axis=1), 
                                           label_names=['label'], protected_attribute_names=self._config.sensitive_attr)

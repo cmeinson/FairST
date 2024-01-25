@@ -11,6 +11,8 @@ torch.autograd.set_detect_anomaly(True)
 # #
 
 epochs = 1250
+#1500 seems like a good spot. 1250 good for now. no need to go over 2
+
 n_repetitions = 1
 results_filename = 'test'
 results_filename = "german_"#"multiple_maps_"
@@ -46,6 +48,8 @@ metric_names = [Metrics.ACC, Metrics.PRE, Metrics.REC, Metrics.AOD, Metrics.EOD,
 # TODO: fix the predict function! with the ppredict proba equivalent for each model 
 # TODO: need fancier benchmarks. esp if the combo with rw works.
 # TODO: try add eq weighting for all subgroups
+# TODO: allow for multiple loss combos in an iteration!!!!!
+# TODO: flip compase sex label
 
 """
 
@@ -63,7 +67,7 @@ LK (PERFECT!!! same acc as fm, rww but bias 2x better)
 LP (lol pretty much same very smol acc loss)
 
 MLP Adult:
-LP, FP 
+LP, KP, FP (P decent)
 
 NB Adult: too much acc loss on all but fp
 FP (PERFECT!!!)
@@ -97,7 +101,6 @@ FP, KP better bas
 -------------------------------------------
 NEED TO ACCOUNT FOR VARIANCE!!!!
 
-Current theory: 
 general case: LP
 Compas: LK/LP
 Adult FP

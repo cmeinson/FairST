@@ -51,6 +51,7 @@ class ResultsGrapher:
                 Tester.EQODDS: "EqO",
                 Tester.EQODDS_ALT: "EqO_ALT",
             }
+            if row[ResultsReader.BIAS_MIT] not in methods: return row[ResultsReader.BIAS_MIT]
             return methods[row[ResultsReader.BIAS_MIT]]
 
         name = ""
