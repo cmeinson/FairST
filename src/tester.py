@@ -76,7 +76,6 @@ class Tester:
             self._results_writer.incr_id()
             # run each test config
             for conf in test_configs:
-                print(conf)
                 self._run_test(conf, save_intermid_results)
 
             # only update the data split for each data in self._initd_data dict. (the first it will have the same default)
@@ -200,7 +199,6 @@ class Tester:
                 fitted_model = self._fyp_vae_models[custom_hash]
                 model._has_been_fitted = True
                 model._mask_model = fitted_model._mask_model
-                print("REUSING A MODEL!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
             else:
                 self._fyp_vae_models[custom_hash]  =  model
 

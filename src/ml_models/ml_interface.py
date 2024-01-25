@@ -98,7 +98,7 @@ class Model:
             return model
         elif method == self.MLP_C:
             iter = 500 if ("iter_1" not in other) else other["iter_1"] 
-            return MLPClassifier( max_iter= iter)
+            return MLPClassifier(max_iter= iter, hidden_layer_sizes=(128, 32, 32))
         elif method == self.NB_C:
             return GaussianNB()
         elif method == self.RF_C:
