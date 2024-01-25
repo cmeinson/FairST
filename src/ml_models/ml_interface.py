@@ -29,7 +29,6 @@ from keras.layers import Dense
 from ..utils import TestConfig
 
 class Model:
-    # NB: if ur implementation of the class takes more than one file pls put it all into sub folder
     LG_R = "LogisticRegression" 
     DT_R = "DecisionTreeRegressor"
     DT_C = "DecisionTreeClassifier"
@@ -69,6 +68,7 @@ class Model:
             return self._model.predict(X)
         # TODO: make this into ._predict functionality
         # TODO: not sure predict proba is the way to go for all modes!!!!
+        # NOTE: mentioned that pfor NB predict proba is not the best!
         return self._model.predict_proba(X)[:,1]
     
         

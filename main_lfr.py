@@ -70,8 +70,8 @@ for e in range(10):
     dataset, dim = Tester.GERMAN_D, 20
     s = ["sex"]
     eq_LG = [
-        TestConfig(Tester.EQODDS, Model.LG_R, other={"c":"EqO2"}, sensitive_attr = s), 
-        TestConfig(Tester.EQODDS_ALT, Model.LG_R, other={"c":"EqO ALT2"}, sensitive_attr = s), 
+        #TestConfig(Tester.EQODDS, Model.LG_R, other={"c":"EqO2"}, sensitive_attr = s), 
+        #TestConfig(Tester.EQODDS_ALT, Model.LG_R, other={"c":"EqO ALT2"}, sensitive_attr = s), 
     ]
     vae_LG = [
         TestConfig(Tester.FYP_VAE, Model.LG_R, sensitive_attr=s, other={"c": comment, VAEMaskModel.VAE_MASK_CONFIG:  
@@ -87,8 +87,8 @@ for e in range(10):
     
     
     eq_MLP = [
-        TestConfig(Tester.EQODDS, Model.MLP_C, other={"c":"EqO2"}, sensitive_attr = s), 
-        TestConfig(Tester.EQODDS_ALT, Model.MLP_C, other={"c":"EqO ALT2"}, sensitive_attr = s), 
+        #TestConfig(Tester.EQODDS, Model.MLP_C, other={"c":"EqO2"}, sensitive_attr = s), 
+        #TestConfig(Tester.EQODDS_ALT, Model.MLP_C, other={"c":"EqO ALT2"}, sensitive_attr = s), 
     ]
     vae_MLP = [
         TestConfig(Tester.FYP_VAE, Model.MLP_C, sensitive_attr=s, other={"c": comment, VAEMaskModel.VAE_MASK_CONFIG:  

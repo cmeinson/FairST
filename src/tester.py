@@ -51,6 +51,7 @@ class Tester:
         self._base_models = (
             {}
         )  # models with no bias mitigation should be separate for each data preproc and renewes for each datat split
+        self._fyp_vae_models = {} # if 2 instances of my model are used that differ only in base ml method, it can be reused!
 
         self._dataset_name = dataset_name
         self._metric_names = metric_names
@@ -70,10 +71,12 @@ class Tester:
         for _ in range(repetitions):
             # RE TRAIN THE POST PROC no bias mit BASE MODELS! PASS IT INTO THE MODELS ON INIT. save it in self.
             self._base_models = {}  # set to none and train when needed by _get_model
+            self._fyp_vae_models = {}
 
             self._results_writer.incr_id()
             # run each test config
             for conf in test_configs:
+                print(conf)
                 self._run_test(conf, save_intermid_results)
 
             # only update the data split for each data in self._initd_data dict. (the first it will have the same default)
@@ -94,7 +97,7 @@ class Tester:
             model.fit(X, y)
 
             X, y = data.get_test_data()
-            predict = lambda x: model.predict(x.copy())  # used just for fr
+            predict = lambda x: model.predict(x.copy())  # used just for fr # TODO: i am not using fr - might remove this
             self._preds = predict(X)
             try:
                 evals = self._evaluate(
@@ -165,6 +168,9 @@ class Tester:
 
     def _get_model(self, config: TestConfig) -> Model:
         # if the same model previously initialized (likely for use as a base model for post proc)
+        # TODO: if 2 configs differ only in ml_method then can REUSE my method!!!!
+        
+        
         descr = self._get_model_descr(config)
         if descr in self._base_models:
             return self._base_models[descr]
@@ -185,8 +191,20 @@ class Tester:
         elif name == self.EQODDS_ALT:
             return EqOModel(config, self._get_base_model(config))
         elif name == self.FYP_VAE:
+            # TODO: the reusability feature can be done better!!!! this messes up the retry attept in case of bad results!
+            custom_hash = config.get_hash_without_ml_method()
             data = self._get_dataset(config.preprocessing)
-            return VAEMaskModel(config, self._get_base_model(config), data.post_mask_transform)
+            model = VAEMaskModel(config, self._get_base_model(config), data.post_mask_transform)
+
+            if custom_hash in self._fyp_vae_models:
+                fitted_model = self._fyp_vae_models[custom_hash]
+                model._has_been_fitted = True
+                model._mask_model = fitted_model._mask_model
+                print("REUSING A MODEL!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+            else:
+                self._fyp_vae_models[custom_hash]  =  model
+
+            return model
         else:
             raise RuntimeError("Incorrect method name ", name)
 

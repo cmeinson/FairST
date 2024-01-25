@@ -12,15 +12,35 @@ class TestConfig:
         self.other=other
 
     def __hash__(self):
+        str_other = {}
+        if self.other is not None:
+            str_other = {key: str(value) for key, value in self.other.items()}
+
         # Use hash function on all relevant attributes
         hash_tuple = (
             self.bias_mit,
             self.ml_method,
             self.bias_ml_method,
-            self.base_model_bias_mit,
             self.preprocessing,
+            self.base_model_bias_mit,
             tuple(self.sensitive_attr) if self.sensitive_attr else None,
-            frozenset(self.other.items()) if self.other else None,
+            frozenset(str_other.items()),
+        )
+        return hash(hash_tuple)
+    
+    def get_hash_without_ml_method(self):
+        # Use hash function on all relevant attributes
+        str_other = {}
+        if self.other is not None:
+            str_other = {key: str(value) for key, value in self.other.items()}
+
+        hash_tuple = (
+            self.bias_mit,
+            self.bias_ml_method,
+            self.preprocessing,
+            self.base_model_bias_mit,
+            tuple(self.sensitive_attr) if self.sensitive_attr else None,
+            frozenset(str_other.items()),
         )
         return hash(hash_tuple)
     

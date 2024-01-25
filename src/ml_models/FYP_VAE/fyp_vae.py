@@ -18,7 +18,7 @@ from collections import Counter
 
 # TODO: no longer attr col last
 PRINT_FREQ = 50
-VERBOSE = True
+VERBOSE = False
 
 class VAEMaskModel(Model):
     VAE_MASK_CONFIG = "my model config"
@@ -38,6 +38,7 @@ class VAEMaskModel(Model):
         self._vm_config = config.other[self.VAE_MASK_CONFIG]
         self._mask_weights = {}
         self.post_mask_transform = post_mask_transform
+        self._has_been_fitted = False
 
 
     def fit(self, X: pd.DataFrame, y: np.array):
@@ -48,6 +49,10 @@ class VAEMaskModel(Model):
         :param y: training data outcomes
         :type y: np.array
         """
+        # to allow for reusing the class with a diff base model
+        # TODO: make this feature better
+        
+        
         self._column_names = X.columns.tolist()
         input_dim = len(self._column_names)
         sens_column_ids = [self._column_names.index(col) for col in self._config.sensitive_attr]
@@ -59,6 +64,8 @@ class VAEMaskModel(Model):
         # Build the mask_model
         tensor = torch.tensor(X.values, dtype=torch.float32)
         self._mask_model = self._train_vae(tensor, y, self._vm_config.epochs)   
+        
+        #self._has_been_fitted = True
 
     def predict(self, X: pd.DataFrame) -> np.array:
         """ Uses the previously trained ML model
@@ -96,6 +103,10 @@ class VAEMaskModel(Model):
         return self.post_mask_transform(df)
     
     def _train_vae(self, X: Tensor, y: np.array, epochs = 500):
+        if self._has_been_fitted: # TODO: verify this works
+            return self._mask_model
+        
+        
         self.COUNTER = 0
         model = VAE(self._vm_config)
         optimizer = optim.Adam(model.parameters(), lr=self._vm_config.lr)#, momentum=0.3)
