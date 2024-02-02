@@ -17,8 +17,11 @@ class ResultsGrapher:
     def plot_metrics_vs_metric(
         self, metric="accuracy", metrics=None, relative=True, mean=True
     ):
+        self.reader.add_metrics([metric])
         if metrics is None:
             metrics = self.reader.metrics
+        else:
+            self.reader.add_metrics(metrics)
 
         plot_f = lambda p, df, y_m: self._plot_metric_vs_metric(
             p, df, y_m, x_metric=metric
@@ -31,13 +34,6 @@ class ResultsGrapher:
         plot_f = lambda p, df, y_m: self._plot_metric_vs_metric(
             p, df, y_m, x_metric=metric
         )
-        self._plot_all_filter_values(metrics, plot_f, relative, mean)
-
-    def plot_metrics_vs_epochs(self, metrics=None, relative=True, mean=True):
-        if metrics is None:
-            metrics = self.reader.metrics
-
-        plot_f = lambda p, df, y_m: self._plot_epochs_vs_metric(p, df, y_m)
         self._plot_all_filter_values(metrics, plot_f, relative, mean)
 
     def _row_label_generator(self, row):
@@ -68,16 +64,23 @@ class ResultsGrapher:
         if name == "":
             return "VAE"
         return name
+    
+    def get_color(self, label):
+        colors = {
+            "LF":2,
+            "LP":9,
+            "LK":3,
+            "FK":4,
+            "FP":8,
+            "KP":6,
+            "VAE":7,
+            "P": 1
+        }
+        if label not in colors:
+            return self.cmap(7)
+        return self.cmap(colors[label])
 
-    def _get_epochs(self, row):
-        other = row[ResultsReader.OTHER]
-        if "VAEMaskConfig" not in other:
-            return 0
-
-        other = other.split("epochs=")[-1]
-        return int(other.split(",")[0])
-
-    def _get_label_text(self, other):
+    def _get_legend_text(self, other):
         if not self.use_comment_as_label:
             return other[:50]
 
@@ -86,51 +89,32 @@ class ResultsGrapher:
 
     def _plot_metric_vs_metric(self, cur_plt, df, y_metric, x_metric):
         label_col = ResultsReader.OTHER
+        # TODO: make it such that each loss combo is separate))?????/
         for i, label in enumerate(df[label_col].unique()):
-            color = self.cmap(i)
-            cur_plt.scatter(
-                df[df[label_col] == label][x_metric],
-                df[df[label_col] == label][y_metric],
-                label=self._get_label_text(label),
-                color=color,
-            )
             for index, row in df[df[label_col] == label].iterrows():
+                point_label=self._row_label_generator(row)
+                color = self.get_color(point_label)
+
                 cur_plt.text(
                     row[x_metric],
                     row[y_metric],
-                    self._row_label_generator(row),
+                    point_label,
                     fontsize=12,
                     ha="right",
                     va="bottom",
                     color=color,
                 )
+            cur_plt.scatter(
+                df[df[label_col] == label][x_metric],
+                df[df[label_col] == label][y_metric],
+                label=self._get_legend_text(label),
+                color=color,
+            )
 
         plt.xlabel(x_metric)
+        plt.xticks(rotation=45, ha='right')
         plt.ylabel(y_metric.split("]")[0] + "]")
-
-    def _plot_epochs_vs_metric(self, cur_plt, df, y_metric):
-        label_col = ResultsReader.OTHER
-        for i, label in enumerate(df[label_col].unique()):
-            color = self.cmap(i)
-            for index, row in df[df[label_col] == label].iterrows():
-                cur_plt.scatter(
-                    [self._get_epochs(row)],
-                    [row[y_metric]],
-                    label=[self._row_label_generator(row)],
-                    color=color,
-                )
-                cur_plt.text(
-                    self._get_epochs(row),
-                    row[y_metric],
-                    self._row_label_generator(row),
-                    fontsize=12,
-                    ha="right",
-                    va="bottom",
-                    color=color,
-                )
-
-        plt.xlabel("epochs")
-        plt.ylabel(y_metric.split("]")[0] + "]")
+        
 
     def _plot_each_metric(self, title, metrics, plot_f, relative, mean):
         df = self.reader.get_filtered_metrics(mean=mean, relative=relative)

@@ -13,6 +13,7 @@ from ...utils import TestConfig
 from .configs import VAEMaskConfig
 from collections import Counter
 
+from torch.nn.utils import clip_grad_norm_
 
 
 
@@ -121,10 +122,12 @@ class VAEMaskModel(Model):
 
             # train each loss model and get loss 
             loss = self._get_total_loss(loss_models, X, outputs, mu, std, z, attr_cols, model, y)
-
+            
             optimizer.zero_grad()
             # train main model    
             loss.backward() 
+            clip_grad_norm_(model.parameters(), max_norm=5.0)
+
             optimizer.step()
 
             # print all used losses

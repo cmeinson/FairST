@@ -1,6 +1,7 @@
 import pandas as pd
 from src.tester import Tester
 import numpy as np
+from .other_col_reader import OtherColReader
 
 class ResultsReader:
     # TODO: allor reading of multiple files
@@ -27,7 +28,12 @@ class ResultsReader:
         
         self.read_csv()
         self.filters = {}
+        self.filterable = self.FILTERABLE + []
         self.columns_shown = self.FILTERABLE + self.metrics
+        ocr = OtherColReader(self.df)
+        self.add_column = ocr.add_col
+        self.relative_metrics_filter = lambda df: df
+        
 
     def read_csv(self):
         try:
@@ -37,6 +43,17 @@ class ResultsReader:
             print(f"Error: Unable to open '{self.file_path}'", e)
             
         self.df = self._proccess_df(df)
+        
+    def add_metrics(self, names: list):
+        for name in names:
+            if name not in self.df.columns:
+                is_numeric = self.add_column(name)
+                if is_numeric:
+                    self.metrics.append(name)
+                else:
+                    self.filterable.append(name)
+                self.columns_shown.append(name)
+                
             
     def _proccess_df(self, df):
         # remove time and reps columns, keep only reps = 1
@@ -48,6 +65,8 @@ class ResultsReader:
         df[self.ID] = np.floor(df[self.ID]).astype(int)
 
         non_metric_cols = self.FILTERABLE + [self.ID]
+        
+        
         self.metrics = [col for col in df.columns if col not in non_metric_cols]
         
         return df
@@ -144,15 +163,19 @@ class ResultsReader:
                     (self.df[self.BIAS_MIT] == base)
                     ]
                 for metric in self.metrics:
-                    df.loc[index, metric] = row[metric] - base_row[metric].values[0]
-            except:
+                    if not isinstance(df.loc[index, metric], str):
+                        df.loc[index, metric] = row[metric] - base_row[metric].values[0]
+            except Exception as e:
                 df.loc[index, metric] = 0
-                print("unable to find base for", index)
+                print("unable to find base for", index, e)
 
-        return df
+        relative_df = self.relative_metrics_filter(df)
+        # NOTE: this s a hack:
+        relative_df[OtherColReader.ACC_SF_TO] = (relative_df["accuracy"]+0.3)*(0.1-relative_df["[SF] Statistical Parity Subgroup Fairness"]*2)
+        return relative_df
     
     def _get_mean_metrics(self, df):
-        mean_df = df.groupby(self.FILTERABLE).mean().reset_index()
+        mean_df = df.groupby(self.filterable).mean().reset_index()
         return mean_df  
             
         

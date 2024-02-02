@@ -7,7 +7,7 @@ vaes = [
     (150, 100),
     (100, 100, 30),
     (50, 30, 30),
-    (50, 45, 35, 30),
+    (50, 45, 35, 30), #compas
     (45, 25, 25, 25),
     (128, 32)
 ]
@@ -37,7 +37,7 @@ class VAEMaskConfig:
         vae_layers = random.choice(vaes)
         self.vae_layers = tuple(max(i,latent_dim) for i in vae_layers)
         self.lossed_used = losses_used
-        self.lr = lr* random.choice(range(20, 250))/100
+        self.lr = lr* random.choice(range(20, 250))/100  # 0.0125
         self.loss_configs = {}
         self.sens_column_ids = None
         self.input_dim = None
