@@ -2,26 +2,20 @@
 import os
 from src import *
 import torch
-import sys
 
-n_repetitions = 5
+torch.autograd.set_detect_anomaly(True)
+# For the experiments with hyperpara I will directly modify the configs.py to have all the hyperparam combos
 
-def try_test(results_filename, s, dataset, metric_names, mls, n_repetitions, attempts = 3):
-    for i in range(attempts):
-        try:
-            results_file = os.path.join("results",results_filename +"_".join(s)+".csv")
-            tester = Tester(results_file, dataset, metric_names)
-            tester.run_tests(mls, n_repetitions, save_intermid_results=True)
-            return
-        except KeyboardInterrupt:
-            sys.exit()
-        except Exception:
-            print("failed test nr ",i+1, dataset, s)
-            
-def run_all_losses(dataset, epochs, latent_dim, lr, vae_layers):
-    
-    results_filename = "methodic_hyperparams_"
-    comment= "FYP"
+
+epochs = 0
+n_repetitions = 2
+results_filename = "hyperparams_"
+other = {}
+
+datasets = [Tester.COMPAS_D, Tester.ADULT_D]#, Tester.COMPAS_D] #[Tester.ADULT_D,  Tester.COMPAS_D]#, Tester.GERMAN_D, Tester.ADULT_D,], Tester.COMPAS_D, 
+latent_dims = [12, 30]
+metric_names = [Metrics.ACC, Metrics.PRE, Metrics.REC, Metrics.AOD, Metrics.EOD, Metrics.SPD, Metrics.DI_FM, Metrics.SF]
+
 
     losses = [
         [VAEMaskConfig.LATENT_S_ADV_LOSS, VAEMaskConfig.POS_VECTOR_LOSS,        VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS], 
