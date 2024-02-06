@@ -85,6 +85,14 @@ class AdultData(Data):
 
         X['relationship'] = X['relationship'].replace(['Wife', 'Husband'], 'Spouse') # TODO: to test the masks ability, see if it swithces this upon swithcing gender!!!!!!!!!
         X['relationship'] = X['relationship'].replace(['Not-in-family', 'Unmarried'], 'No') 
+        
+        # occupation inspired by https://rpubs.com/giauyen123/1070743
+        X['occupation'] = X['occupation'].replace(['Prof-specialty', 'Exec-managerial'], 'Professional') 
+        X['occupation'] = X['occupation'].replace(['Other-service', 'Protective-serv'], 'Service') 
+        X['occupation'] = X['occupation'].replace(['Adm-clerical', 'Tech-support'], 'Office Support') 
+        X['occupation'] = X['occupation'].replace(['Handlers-cleaners', 'Farming-fishing', 'Transport-moving', 'Craft-repair', 'Machine-op-inspct'], 'Blue Collar') 
+        X['occupation'] = X['occupation'].replace(['?', 'Armed-Forces', 'Priv-house-serv'], 'Other/Uncommon') 
+
         return X
  
     

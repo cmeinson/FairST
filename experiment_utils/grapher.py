@@ -5,6 +5,8 @@ from matplotlib.cm import get_cmap
 from .file_reader import ResultsReader
 from src.ml_models.FYP_VAE.configs import VAEMaskConfig as vae_config  # has losses
 from src.tester import Tester  # has bias mits
+from .other_col_reader import get_config
+
 
 
 class ResultsGrapher:
@@ -58,8 +60,9 @@ class ResultsGrapher:
             vae_config.POS_VECTOR_LOSS,
         ]
         shorts = ["L", "F", "K", "P"]
+        losses_used = get_config(row, 'losses_used=', post='])', numeric=False)
         for short, loss in zip(shorts, losses):
-            if loss in row[ResultsReader.OTHER]:
+            if loss in losses_used:
                 name += short
         if name == "":
             return "VAE"

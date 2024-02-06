@@ -4,7 +4,7 @@ from src import *
 import torch
 import sys
 
-n_repetitions = 5
+n_repetitions = 1
 
 def try_test(results_filename, s, dataset, metric_names, mls, n_repetitions, attempts = 3):
     for i in range(attempts):
@@ -18,7 +18,20 @@ def try_test(results_filename, s, dataset, metric_names, mls, n_repetitions, att
         except Exception:
             print("failed test nr ",i+1, dataset, s)
             
-def run_all_losses(dataset, epochs, latent_dim, lr, vae_layers):
+def get_vaemask_config(epochs, latent_dim, lr, vae_layers, loss, loss_params):
+    config = VAEMaskConfig(epochs=epochs, latent_dim=latent_dim, lr=lr, losses_used=loss, vae_layers=vae_layers)
+    config.config_loss(config.KL_DIV_LOSS, weight = loss_params["w_kl_div"])
+    config.config_loss(config.RECON_LOSS, weight = loss_params["w_recon"])
+    
+    config.config_loss(config.LATENT_S_ADV_LOSS, weight = loss_params["w_latent_s"], lr=loss_params["lr_latent_s"], layers=loss_params["layers_latent_s"])
+    config.config_loss(config.FLIPPED_ADV_LOSS, weight = loss_params["w_flipped"], lr=loss_params["lr_flipped"], layers=loss_params["layers_flipped"])
+    
+    config.config_loss(config.KL_SENSITIVE_LOSS, weight = loss_params["w_kl_sens"])
+    config.config_loss(config.POS_VECTOR_LOSS, weight = loss_params["w_pos_sens"])
+    
+    return config
+            
+def run_all_losses(dataset, epochs, latent_dim, lr, vae_layers, loss_params):
     
     results_filename = "methodic_hyperparams_"
     comment= "FYP"
@@ -34,9 +47,9 @@ def run_all_losses(dataset, epochs, latent_dim, lr, vae_layers):
             continue
         # check German only run with sex
         
-        vae_LG = [
+        vae_LG  = [
             TestConfig(Tester.FYP_VAE, Model.LG_R, sensitive_attr=s, other={"c": comment, VAEMaskModel.VAE_MASK_CONFIG:  
-                VAEMaskConfig(epochs=epochs, latent_dim=latent_dim, lr=lr, losses_used=l, vae_layers=vae_layers)}) for l in losses
+                get_vaemask_config(epochs, latent_dim, lr, vae_layers, l, loss_params)}) for l in losses
             ]
         mls_LG = vae_LG +  [  
             TestConfig(Tester.BASE_ML, Model.LG_R , sensitive_attr = s),   
@@ -49,7 +62,7 @@ def run_all_losses(dataset, epochs, latent_dim, lr, vae_layers):
         
         vae_MLP = [
             TestConfig(Tester.FYP_VAE, Model.MLP_C, sensitive_attr=s, other={"c": comment, VAEMaskModel.VAE_MASK_CONFIG:  
-                VAEMaskConfig(epochs=epochs, latent_dim=latent_dim, lr=lr, losses_used=l, vae_layers=vae_layers)}) for l in losses
+                get_vaemask_config(epochs, latent_dim, lr, vae_layers, l, loss_params)}) for l in losses
             ]
         mls_MLP =  vae_MLP + [
             TestConfig(Tester.BASE_ML, Model.MLP_C , sensitive_attr = s),   
@@ -95,15 +108,29 @@ MLP
 
 
 
-datasets = [Tester.COMPAS_D, Tester.GERMAN_D, Tester.ADULT_D]#, Tester.COMPAS_D] #[Tester.ADULT_D,  Tester.COMPAS_D]#, Tester.GERMAN_D, Tester.ADULT_D,], Tester.COMPAS_D, 
-latent_dims = [12, 15, 30]
+datasets = [ Tester.GERMAN_D, Tester.ADULT_D, Tester.COMPAS_D]#, Tester.COMPAS_D] #[Tester.ADULT_D,  Tester.COMPAS_D]#, Tester.GERMAN_D, Tester.ADULT_D,], Tester.COMPAS_D, 
+latent_dims = [ 15, 30, 12]
 defaults = [
-    (1300, 12, 0.01, (50, 45, 35, 30)),
     (1400, 15, 0.01, (50, 45, 35, 30)),
     (1400, 30, 0.014,(75, 60, 30, 30)),
+    (1300, 12, 0.01, (50, 45, 35, 30)),
 ]
 metric_names = [Metrics.ACC, Metrics.PRE, Metrics.REC, Metrics.AOD, Metrics.EOD, Metrics.A_AOD, Metrics.A_EOD, Metrics.SPD, Metrics.DI_FM, Metrics.SF,]
 
+
+og_loss_params = {
+    "w_kl_div" : 0.005,
+    "w_recon" : 15,
+    "w_latent_s" : 0.1, 
+    "w_flipped" : 0.01,
+    "w_kl_sens" : 9000,
+    "w_pos_sens" : 1200000,
+    "lr_latent_s" : 0.05, 
+    "lr_flipped" : 0.05,
+    "layers_latent_s" : (75, 30, 10), 
+    "layers_flipped" : (75, 30, 10)
+}
+        
 
 vaes = [
     (75, 60, 30, 15),
@@ -118,18 +145,65 @@ vaes = [
     (45, 25, 25, 25),
 ]
 
-
+# TODO: del
 for e in range(10):
     for dataset, dim, default_values in zip(datasets, latent_dims, defaults):
         for epoch_mult in range(50, 160, 10):
-            run_all_losses(dataset, epoch_mult*default_values[0]//100, default_values[1], default_values[2], default_values[3])
+            run_all_losses(dataset, epoch_mult*default_values[0]//100, default_values[1], default_values[2], default_values[3], og_loss_params)
             
         for dims_add in range(-5, 6):
-            run_all_losses(dataset, default_values[0], default_values[1]+dims_add, default_values[2], default_values[3])
+            run_all_losses(dataset, default_values[0], default_values[1]+dims_add, default_values[2], default_values[3], og_loss_params)
             
         for lr_mult in range(50, 160, 10):
-            run_all_losses(dataset, default_values[0], default_values[1], lr_mult*default_values[2]/100, default_values[3])
+            run_all_losses(dataset, default_values[0], default_values[1], lr_mult*default_values[2]/100, default_values[3], og_loss_params)
           
         for layers in vaes:
-            run_all_losses(dataset, default_values[0], default_values[1], default_values[2], layers)
+            run_all_losses(dataset, default_values[0], default_values[1], default_values[2], layers, og_loss_params)
+
+
+
+for e in range(10):
+    for dataset, dim, default_values in zip(datasets, latent_dims, defaults):
+        og_loss_params = {
+            "w_kl_div" : 0.005,
+            "w_recon" : 15,
+            "w_latent_s" : 0.1, 
+            "w_flipped" : 0.01,
+            "w_kl_sens" : 9000,
+            "w_pos_sens" : 1200000,
+            "lr_latent_s" : 0.05, 
+            "lr_flipped" : 0.05,
+            "layers_latent_s" : (75, 30, 10), 
+            "layers_flipped" : (75, 30, 10)
+        }
+        
+        """
+        rocon w *5
+            kl w  *3
+                pos w *5
+                    other lossses w *3
+                        lrs *3
+                            layers *2
+
+        """
+        for w_recon in [8, 11.5, 15, 18.5, 22]:
+            for w_kl_div in [0.025, 0.05, 0.075]:
+                for w_pos_sens in [600000, 900000, 1200000, 1500000, 1800000]:
+                    for w_loss_mult in [0.7, 1, 1.3]:
+                        for lr_loss_mult in [0.7, 1, 1.3]:
+                            for layers in [(75, 30, 10), (60,10,10,10)]:
+                                params = {
+                                    "w_kl_div" : w_kl_div,
+                                    "w_recon" : w_recon,
+                                    "w_latent_s" : og_loss_params["w_latent_s"]*w_loss_mult, 
+                                    "w_flipped" : og_loss_params["w_flipped"]*w_loss_mult, 
+                                    "w_kl_sens" : og_loss_params["w_kl_sens"]*w_loss_mult, 
+                                    "w_pos_sens" : w_pos_sens, 
+                                    "lr_latent_s" : og_loss_params["lr_latent_s"]*lr_loss_mult, 
+                                    "lr_flipped" : og_loss_params["lr_flipped"]*lr_loss_mult,
+                                    "layers_latent_s" : layers,
+                                    "layers_flipped" : layers,
+                                }
+                                run_all_losses(dataset, default_values[0], default_values[1], default_values[2], default_values[3], params)
+
 

@@ -1,5 +1,21 @@
 from src.ml_models.FYP_VAE.configs import VAEMaskConfig as vae_config  # has losses
 
+def get_config(row, pre, post = ',', loss = None, numeric = True):
+    other = row["other"]
+    
+    if "VAEMaskConfig" not in other:
+        if numeric:
+            return 0
+        return '-'
+    
+    if loss is not None:
+        other = other.split(loss)[1]
+    other = other.split(pre)[1]
+    res =  other.split(post)[0]
+    if numeric:
+        return float(res)
+    return res
+
 class OtherColReader:
     EPOCHS = "epochs"
     LATENT_DIM = "latent dimentions"
@@ -25,14 +41,14 @@ class OtherColReader:
     
     def add_col(self, name):
         funcs = {
-           self.EPOCHS: lambda row: self.get_config(row, 'epochs='),
-           self.LATENT_DIM: lambda row: self.get_config(row, 'latent_dim='),
-           self.VAE_LAYERS: lambda row: self.get_config(row, 'vae_layers=', post='),',numeric=False),
-           self.LR: lambda row: self.get_config(row, 'lr='),
+           self.EPOCHS: lambda row: get_config(row, 'epochs='),
+           self.LATENT_DIM: lambda row: get_config(row, 'latent_dim='),
+           self.VAE_LAYERS: lambda row: get_config(row, 'vae_layers=', post='),',numeric=False),
+           self.LR: lambda row: get_config(row, 'lr='),
            self.LOSSES: self.get_losses,
            
-           self.L_LR: lambda row: self.get_config(row, 'lr=', vae_config.LATENT_S_ADV_LOSS),
-           self.F_LR: lambda row: self.get_config(row, 'lr=', vae_config.FLIPPED_ADV_LOSS),
+           self.L_LR: lambda row: get_config(row, 'lr=', vae_config.LATENT_S_ADV_LOSS),
+           self.F_LR: lambda row: get_config(row, 'lr=', vae_config.FLIPPED_ADV_LOSS),
            
            self.ACC_SF_TO: lambda row: row["accuracy"]*row["[SF] Statistical Parity Subgroup Fairness"]
         }
@@ -44,28 +60,14 @@ class OtherColReader:
             return False
         return True     
     
-    def get_config(self, row, pre, post = ',', loss = None, numeric = True):
-        other = row["other"]
-        
-        if "VAEMaskConfig" not in other:
-            if numeric:
-                return 0
-            return '-'
-        
-        if loss is not None:
-            other = other.split(loss)[1]
-        other = other.split(pre)[1]
-        res =  other.split(post)[0]
-        if numeric:
-            return float(res)
-        return res
+   
 
     def get_losses(self, row):
         other = row["other"]
 
         if "VAEMaskConfig" not in other:
             return "-"
-        losses = self.get_config(row, 'losses_used=', post='])', numeric=False)
+        losses = get_config(row, 'losses_used=', post='])', numeric=False)
         
         split_losses = losses.split(',')
         out = ''
