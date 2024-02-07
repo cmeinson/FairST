@@ -77,7 +77,7 @@ class EqOModel(Model):
 
 
 
-    def predict(self, X: pd.DataFrame) -> np.array: 
+    def predict(self, X: pd.DataFrame, binary= True) -> np.array: 
         if self._use_base_model:
             preds = self._model.predict(X)
         else:
@@ -104,4 +104,7 @@ class EqOModel(Model):
         print("TEST AFTER")
         print(intersection_counts)
 
-        return self._binarise(calibrated_preds.labels.T[0])
+        preds = calibrated_preds.labels.T[0]
+        if not binary:
+            return preds
+        return self._binarise(preds)

@@ -46,7 +46,7 @@ class FairMaskModel(Model):
         #self._model.fit(X, y)
              
 
-    def predict(self, X: pd.DataFrame) -> np.array:
+    def predict(self, X: pd.DataFrame, binary = True) -> np.array:
         """ Uses the previously trained ML model
 
         :param X: testing data
@@ -56,7 +56,9 @@ class FairMaskModel(Model):
         :rtype: np.array
         """
         X_masked = self._mask(X)
-        preds = self._model.predict(X_masked)
+        preds = self._model.predict(X_masked, binary=False)
+        if not binary:
+            return preds
         return self._binarise(preds)
         
     def _mask(self, X: pd.DataFrame):

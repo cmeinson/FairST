@@ -18,7 +18,7 @@ from torch.nn.utils import clip_grad_norm_
 
 
 # TODO: no longer attr col last
-PRINT_FREQ = 50
+PRINT_FREQ = 1000
 VERBOSE = False
 
 class VAEMaskModel(Model):
@@ -68,7 +68,7 @@ class VAEMaskModel(Model):
         
         #self._has_been_fitted = True
 
-    def predict(self, X: pd.DataFrame) -> np.array:
+    def predict(self, X: pd.DataFrame, binary = True) -> np.array:
         """ Uses the previously trained ML model
 
         :param X: testing data
@@ -84,7 +84,9 @@ class VAEMaskModel(Model):
             X_masked = self._mask(X, list(attrs))
             preds = preds + (self._model.predict(X_masked, binary=False)*w)
         
-        return self._binarise(preds)      
+        if not binary:
+            return preds
+        return self._binarise(preds)    
         
     def _mask(self, X: pd.DataFrame, mask_values: List[int]) -> pd.DataFrame:
         tensor = torch.tensor(X.values, dtype=torch.float32)
@@ -172,6 +174,13 @@ class VAEMaskModel(Model):
             if count>0:
                 self._mask_weights[attrs] = count/n
 
+        print(self._mask_weights)
+        """
+        # TODO: del. current fix for experiments - eq qeigths
+        groups = len(self._mask_weights)
+        for key in self._mask_weights:
+            self._mask_weights[key] = 1/groups
+        """
 
 
         

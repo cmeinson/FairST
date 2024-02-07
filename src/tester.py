@@ -58,6 +58,8 @@ class Tester:
         self._results_writer = ResultsWriter(file_name, dataset_name)
 
         self._preds = None  # ????
+        self._rep_proba_preds = None 
+        self._last_test_data = None
 
     def run_tests(
         self, test_configs: List[TestConfig], repetitions=1, save_intermid_results=False
@@ -72,6 +74,7 @@ class Tester:
             # RE TRAIN THE POST PROC no bias mit BASE MODELS! PASS IT INTO THE MODELS ON INIT. save it in self.
             self._base_models = {}  # set to none and train when needed by _get_model
             self._fyp_vae_models = {}
+            self._rep_proba_preds = []
 
             self._results_writer.incr_id()
             # run each test config
@@ -98,6 +101,8 @@ class Tester:
             X, y = data.get_test_data()
             predict = lambda x: model.predict(x.copy())  # used just for fr # TODO: i am not using fr - might remove this
             self._preds = predict(X)
+            self._rep_proba_preds.append(model.predict(X.copy(), binary=False))
+            self._last_test_data = (X, y)
             try:
                 evals = self._evaluate(
                     Metrics(X, y, self._preds, predict), config.sensitive_attr
@@ -112,9 +117,9 @@ class Tester:
                 self._results_writer.add_result(config, evals, save_intermid)
                 break
 
-    def get_last_run_preds(self):
-        """for debugging. only really useful when running just a single config and a single rep"""
-        return self._preds
+    def get_last_run(self):
+        """for debugging. only really useful when running just a single rep"""
+        return self._rep_proba_preds, *self._last_test_data
 
     def get_exceptions(self):
         """for debugging: get exceptions from the last run"""

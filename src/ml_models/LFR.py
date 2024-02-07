@@ -74,7 +74,7 @@ class LFRModel(Model):
 
         self._model.fit(dataset_transf.features, y)
 
-    def predict(self, X: pd.DataFrame) -> np.array:
+    def predict(self, X: pd.DataFrame, binary = True) -> np.array:
         if len(self._config.sensitive_attr)>1:
             print("!!!!!!!!!!!!!!!!!!!! Multiple sensitive attributes not supported for LFR", self._config.sensitive_attr)
             return np.zeros(len(X))
@@ -89,5 +89,7 @@ class LFRModel(Model):
         )
 
         dataset_transf = self._TR_model.transform(dataset)
-        preds = self._model.predict(dataset_transf.features)
+        preds = self._model.predict_proba(dataset_transf.features)[:,1] 
+        if not binary:
+            return preds
         return self._binarise(preds)
