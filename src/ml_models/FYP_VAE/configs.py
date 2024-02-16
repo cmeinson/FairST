@@ -36,7 +36,7 @@ class VAEMaskConfig:
             self._config_KL_sens(**kwargs)
         elif loss_name == self.POS_VECTOR_LOSS:
             self._config_pos_vec(**kwargs)
-        print("UPDATED LOSS CONFIG:", loss_name, self.loss_configs[loss_name])
+        #print("UPDATED LOSS CONFIG:", loss_name, self.loss_configs[loss_name])
 
     def set_input_dim_and_sens_column_ids(self, input_dim, ids):
         # TODO: this class got kinda ugly
