@@ -76,7 +76,7 @@ class Tester:
             self._fyp_vae_models = {}
             self._rep_proba_preds = []
 
-            self._results_writer.incr_id()
+            self._results_writer.change_id()
             # run each test config
             for conf in test_configs:
                 self._run_test(conf, save_intermid_results)
@@ -85,7 +85,7 @@ class Tester:
             # -> the data split is only the same if the preproc is also the same (otherwise not comparable)
             self._update_all_data_splits()
 
-        self._results_writer.incr_id()
+        self._results_writer.change_id()
         # print all accumulated evals to file
         self._results_writer.write_final_results()
 

@@ -1,0 +1,11 @@
+time,reps,data,bias mitigation,ML method,bias mit ML method,sensitive attrs,other,accuracy,VAR|accuracy,id
+2024-02-16 17:59:51.766562,1,Compas Dataset,EqOdds ALT,LogisticRegression,,"['sex', 'race']",{'c': 'EqO ALT2'},0.5869262865090403,0.0,892410307981168301
+2024-02-16 17:59:51.751222,2,Compas Dataset,No Bias Mitigation,LogisticRegression,,"['sex', 'race']",{},0.6641168289290682,4.352359268881194e-06,892410307981168301
+2024-02-16 17:59:51.737525,1,Compas Dataset,EqOdds,LogisticRegression,,"['sex', 'race']",{'c': 'EqO2'},0.5744089012517385,0.0,892410307981168301
+2024-02-16 17:59:51.474747,1,Compas Dataset,No Bias Mitigation,LogisticRegression,,"['sex', 'race']",{},0.6620305980528511,0.0,7248056615608288822
+2024-02-16 17:59:51.463847,1,Compas Dataset,EqOdds,LogisticRegression,,"['sex', 'race']",{'c': 'EqO2'},0.5744089012517385,0.0,7248056615608288822
+2024-02-16 17:59:49.468415,1,Adult Dataset,EqOdds ALT,LogisticRegression,,"['sex', 'race']",{'c': 'EqO ALT2'},0.8335891925084433,0.0,2014657625358539767
+2024-02-16 17:59:49.455956,2,Adult Dataset,No Bias Mitigation,LogisticRegression,,"['sex', 'race']",{},0.8497083205403746,1.908927833949514e-06,2014657625358539767
+2024-02-16 17:59:49.441787,1,Adult Dataset,EqOdds,LogisticRegression,,"['sex', 'race']",{'c': 'EqO2'},0.8323610684679152,0.0,2014657625358539767
+2024-02-16 17:59:48.354907,1,Adult Dataset,No Bias Mitigation,LogisticRegression,,"['sex', 'race']",{},0.8483266809947805,0.0,9185912328508524827
+2024-02-16 17:59:48.351904,1,Adult Dataset,EqOdds,LogisticRegression,,"['sex', 'race']",{'c': 'EqO2'},0.8323610684679152,0.0,9185912328508524827

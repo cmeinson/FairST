@@ -62,7 +62,8 @@ class ResultsReader:
         cols_to_drop = var_cols + self.DROP_COLUMNS
         df = df.drop(columns=cols_to_drop, axis=1)
     
-        df[self.ID] = np.floor(df[self.ID]).astype(int)
+        #df[self.ID] = np.floor(df[self.ID]).astype(int)
+        df[self.ID] = df[self.ID]
 
         non_metric_cols = self.FILTERABLE + [self.ID]
         
@@ -162,6 +163,8 @@ class ResultsReader:
                     (self.df[self.ML] == row[self.ML]) & (self.df[self.ATTR] == row[self.ATTR]) & 
                     (self.df[self.BIAS_MIT] == base)
                     ]
+                #print("roww", row[self.FILTERABLE + ["accuracy", "id"]])
+                #print("base",base_row[self.FILTERABLE + ["accuracy", "id"]])
                 for metric in self.metrics:
                     if not isinstance(df.loc[index, metric], str):
                         df.loc[index, metric] = row[metric] - base_row[metric].values[0]

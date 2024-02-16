@@ -98,11 +98,11 @@ class EqOModel(Model):
 
         calibrated_preds = self._calibrator.predict(dataset_pred)
         
-        intersection_counts = pd.concat([X.reset_index(drop=True), pd.DataFrame(data={'label': self._binarise(calibrated_preds.labels.T[0])})], axis=1).groupby(['label', 'race']).size().reset_index(name='count')
+        #intersection_counts = pd.concat([X.reset_index(drop=True), pd.DataFrame(data={'label': self._binarise(calibrated_preds.labels.T[0])})], axis=1).groupby(['label', 'race']).size().reset_index(name='count')
 
         # Print the result
-        print("TEST AFTER")
-        print(intersection_counts)
+        #print("TEST AFTER")
+        #print(intersection_counts)
 
         preds = calibrated_preds.labels.T[0]
         if not binary:

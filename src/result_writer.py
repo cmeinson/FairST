@@ -19,10 +19,11 @@ class ResultsWriter:
         self._evals_per_metric_per_config = {}
         self._file_name = file_name
         self._dataset_name = dataset_name
-        self._experiment_id = random.randint(0,sys.maxsize - 10**5)
+        self._experiment_id = None
+        self.change_id()
 
-    def incr_id(self):
-        self._experiment_id += 1
+    def change_id(self):
+        self._experiment_id = random.randint(0,sys.maxsize)
 
     def add_result(self, test_config, evals, write_to_file = False):
         if write_to_file:
@@ -58,7 +59,7 @@ class ResultsWriter:
         entry.update({key: [np.average(evals[key])] for key in evals})
         entry.update({"VAR|" + key: [np.var(evals[key])] for key in evals})
 
-        entry.update({"id": [int(self._experiment_id)]})
+        entry.update({"id": [str(self._experiment_id)]})
 
         res = pd.DataFrame(entry)
         
@@ -72,7 +73,7 @@ class ResultsWriter:
                 res_new = pd.concat([res, pd.read_csv(self._file_name)], ignore_index=True)
                 
             #formatters = {'id': '{:.0f}'.format}
-            res_new['id'] = res_new['id'].astype(int)
+            #res_new['id'] = res_new['id'].astype(int)
             res_new.to_csv(self._file_name, index=False)
         except IOError as e:
             root, extension = path.splitext(self._file_name)

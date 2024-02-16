@@ -51,7 +51,13 @@ class ResultsGrapher:
             }
             if row[ResultsReader.BIAS_MIT] not in methods: return row[ResultsReader.BIAS_MIT]
             return methods[row[ResultsReader.BIAS_MIT]]
-
+        # TODO: DEL temp patch 
+        if "mse2" in row[ResultsReader.OTHER]:
+            return "[mse2]"
+        if "mse" in row[ResultsReader.OTHER]:
+            return "mse"
+        
+        
         name = ""
         losses = [
             vae_config.LATENT_S_ADV_LOSS,
@@ -77,7 +83,8 @@ class ResultsGrapher:
             "FP":8,
             "KP":6,
             "VAE":7,
-            "P": 1
+            "P": 1,
+            "[mse2]": 5,
         }
         if label not in colors:
             return self.cmap(7)

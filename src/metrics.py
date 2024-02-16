@@ -25,6 +25,7 @@ class Metrics:
     AOD = "[AOD] Average Odds Difference"
     EOD = "[EOD] Equal Opportunity Difference"
     SPD = "[SPD] Statistical Parity Difference"
+    ERD = "[ERD] Error Rate Difference"
     
     DI = "[DI] Disparate Impact"
     DI_FM = "[DI_FM] Disparate Impact the way it was implemented in FairMask"
@@ -72,7 +73,7 @@ class Metrics:
     @classmethod
     def get_attribute_dependant(cls):
         # metrics that need a single attribute as input
-        return [Metrics.AOD, Metrics.EOD, Metrics.SPD, Metrics.A_AOD, Metrics.A_EOD, Metrics.A_SPD, Metrics.DI, Metrics.DI_FM, Metrics.FR, Metrics.ONE_SF, Metrics.ONE_DF]
+        return [Metrics.AOD, Metrics.EOD, Metrics.SPD, Metrics.ERD, Metrics.A_AOD, Metrics.A_EOD, Metrics.A_SPD, Metrics.DI, Metrics.DI_FM, Metrics.FR, Metrics.ONE_SF, Metrics.ONE_DF]
 
     @classmethod
     def get_attribute_independant(cls):
@@ -90,6 +91,7 @@ class Metrics:
             self.AOD:   self.aod,
             self.EOD:   self.eod,
             self.SPD:   self.spd,
+            self.ERD:   self.edr,
             self.A_AOD: lambda attr: abs(self.aod(attr)),
             self.A_EOD: lambda attr: abs(self.eod(attr)),
             self.A_SPD: lambda attr: abs(self.spd(attr)),
@@ -129,6 +131,7 @@ class Metrics:
             cm['tpr'] = tp / self._div_guard(tp + fn)
             cm['fpr'] = fp / self._div_guard(fp + tn)
             cm['pr'] = cm['p'] / (cm['p'] + cm['n'])
+            cm['er'] = (fp+fn) / self._div_guard(tn+ fp+ fn+ tp)
             self._computed_cms[key] = cm
 
         return self._computed_cms[key]
@@ -152,6 +155,11 @@ class Metrics:
     def spd(self, attribute: str) -> float:
         cm0, cm1 = self._get_attribute_cms(attribute)
         return (cm0['pr'] - cm1['pr'])
+    
+    def edr(self, attribute: str) -> float:
+        cm0, cm1 = self._get_attribute_cms(attribute)
+        # possible that it increases the error rate by predicting more positives for 0??? should explore. implement a metric to store er for both groups. 
+        return (cm1['er'] - cm0['er'])
     
     def di(self, attribute: str) -> float:
         cm0, cm1 = self._get_attribute_cms(attribute)
