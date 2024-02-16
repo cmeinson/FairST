@@ -16,8 +16,6 @@ from collections import Counter
 from torch.nn.utils import clip_grad_norm_
 
 
-
-# TODO: no longer attr col last
 PRINT_FREQ = 1000
 VERBOSE = False
 

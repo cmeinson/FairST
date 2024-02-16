@@ -36,6 +36,20 @@ def run_all_losses(dataset, epochs, latent_dim, lr, vae_layers, loss_params):
     results_filename = "methodic_hyperparams_"
     comment= "FYP"
 
+torch.autograd.set_detect_anomaly(True)
+# For the experiments with hyperpara I will directly modify the configs.py to have all the hyperparam combos
+
+
+epochs = 0
+n_repetitions = 2
+results_filename = "TESThyperparams_"
+other = {}
+
+datasets = [Tester.COMPAS_D, Tester.ADULT_D]#, Tester.COMPAS_D] #[Tester.ADULT_D,  Tester.COMPAS_D]#, Tester.GERMAN_D, Tester.ADULT_D,], Tester.COMPAS_D, 
+latent_dims = [12, 30]
+metric_names = [Metrics.ACC, Metrics.PRE, Metrics.REC, Metrics.AOD, Metrics.EOD, Metrics.SPD, Metrics.DI_FM, Metrics.SF]
+
+
     losses = [
         [VAEMaskConfig.LATENT_S_ADV_LOSS, VAEMaskConfig.POS_VECTOR_LOSS,        VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS], 
         #[VAEMaskConfig.POS_VECTOR_LOSS,         VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS], 

@@ -6,10 +6,6 @@ import pandas as pd
 import pandas as pd
 import numpy as np
 
-from aif360.datasets import BinaryLabelDataset
-
-from aif360.algorithms.postprocessing.calibrated_eq_odds_postprocessing import CalibratedEqOddsPostprocessing
-
 import numpy as np
 from sklearn.model_selection import train_test_split
 

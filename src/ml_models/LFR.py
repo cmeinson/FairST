@@ -7,10 +7,6 @@ import pandas as pd
 import pandas as pd
 import numpy as np
 
-from aif360.datasets import BinaryLabelDataset
-
-from aif360.algorithms.preprocessing.lfr import LFR
-
 import numpy as np
 from ..utils import TestConfig
 

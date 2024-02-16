@@ -21,6 +21,8 @@ class Metrics:
     REC = "recall"
     F1 = "f1score"
 
+    MEAN_Y = "mean_pred"
+
     #fairness metrics
     AOD = "[AOD] Average Odds Difference"
     EOD = "[EOD] Equal Opportunity Difference"
@@ -78,7 +80,7 @@ class Metrics:
     @classmethod
     def get_attribute_independant(cls):
         # metrics independant of attributes
-        return [Metrics.ACC, Metrics.PRE, Metrics.REC, Metrics.F1]
+        return [Metrics.ACC, Metrics.PRE, Metrics.REC, Metrics.F1, Metrics.MEAN_Y]
     
     def get(self, metric_name, attr: List[str] or str = None):
         self._last_call = metric_name
@@ -88,6 +90,7 @@ class Metrics:
             self.PRE:   lambda _ : precision_score(self._y, self._preds),
             self.REC:   lambda _ : recall_score(self._y, self._preds),
             self.F1:    lambda _ : f1_score(self._y, self._preds),
+            self.MEAN_Y:lambda _ : np.mean(self._preds),
             self.AOD:   self.aod,
             self.EOD:   self.eod,
             self.SPD:   self.spd,

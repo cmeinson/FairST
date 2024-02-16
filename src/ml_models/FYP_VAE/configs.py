@@ -19,6 +19,10 @@ class VAEMaskConfig:
         for loss in losses_used:
             self.config_loss(loss)
 
+        print("VAE, CONF", self.epochs,self.latent_dim,self.vae_layers,self.lossed_used,self.lr)
+        print("LOSS CONFIG:", self.loss_configs)
+
+
     def config_loss(self, loss_name, **kwargs):
         if loss_name == self.KL_DIV_LOSS:
             self._config_KL_div(**kwargs)
@@ -32,6 +36,7 @@ class VAEMaskConfig:
             self._config_KL_sens(**kwargs)
         elif loss_name == self.POS_VECTOR_LOSS:
             self._config_pos_vec(**kwargs)
+        print("UPDATED LOSS CONFIG:", loss_name, self.loss_configs[loss_name])
 
     def set_input_dim_and_sens_column_ids(self, input_dim, ids):
         # TODO: this class got kinda ugly
@@ -58,7 +63,6 @@ class VAEMaskConfig:
         self.loss_configs[self.KL_DIV_LOSS] = {
             "weight": weight
         }
-        print(self.loss_configs[self.KL_DIV_LOSS])
 
     #def _config_recon(self, weight=12):
     def _config_recon(self, weight=15):
@@ -74,7 +78,6 @@ class VAEMaskConfig:
             "layers": layers,
             "input_dim": self.non_sens_latent_dim,
         }
-        print(self.loss_configs[self.LATENT_S_ADV_LOSS])
 
     def _config_flipped(self, weight=0.01, lr=0.05, optimizer="Adam", layers=(50,30,10)):
         self.loss_configs[self.FLIPPED_ADV_LOSS] = {
@@ -85,7 +88,6 @@ class VAEMaskConfig:
             "input_dim": self.input_dim,
             "sens_col_ids" : self.sens_column_ids
         }
-        print(self.loss_configs[self.FLIPPED_ADV_LOSS])
 
     #def _config_KL_sens(self, weight=0.005):
     def _config_KL_sens(self, weight=9000):
@@ -93,7 +95,6 @@ class VAEMaskConfig:
             "weight": weight,
             "sens_col_ids" : self.sens_column_ids
         }
-        print(self.loss_configs[self.KL_SENSITIVE_LOSS])
 
     def _config_pos_vec(self, weight=1200000):
         self.loss_configs[self.POS_VECTOR_LOSS] = {

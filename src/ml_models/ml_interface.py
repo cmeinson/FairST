@@ -78,7 +78,7 @@ class Model:
             method = self._config.ml_method
 
         if method == self.SV_C:
-            return SVC()
+            return SVC(probability=True)
         elif method == self.KN_C:
             # example of how to pass hyperparams through "other"
             k = 3 if ("KNN_k" not in other) else other["KNN_k"] 
