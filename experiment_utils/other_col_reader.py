@@ -9,6 +9,7 @@ def get_config(row, pre, post = ',', loss = None, numeric = True):
         return '-'
     
     if loss is not None:
+        other = other.split("'])")[1] # todo!!!!!!! '])
         other = other.split(loss)[1]
     other = other.split(pre)[1]
     res =  other.split(post)[0]
@@ -27,6 +28,8 @@ class OtherColReader:
     F_W = "F: weight"
     K_W = "K: weight"
     P_W = "P: weight"
+    RE_W = "RE: weight"
+    KL_W = "KL: weight"
     
     L_LR = "L: lr"
     F_LR = "F: lr"
@@ -47,8 +50,18 @@ class OtherColReader:
            self.LR: lambda row: get_config(row, 'lr='),
            self.LOSSES: self.get_losses,
            
-           self.L_LR: lambda row: get_config(row, 'lr=', vae_config.LATENT_S_ADV_LOSS),
-           self.F_LR: lambda row: get_config(row, 'lr=', vae_config.FLIPPED_ADV_LOSS),
+           self.L_LR: lambda row: get_config(row, "'lr':", loss = vae_config.LATENT_S_ADV_LOSS),
+           self.F_LR: lambda row: get_config(row, "'lr':", loss = vae_config.FLIPPED_ADV_LOSS),
+            
+           self.L_L: lambda row: get_config(row, "'layers':", post='),', loss = vae_config.LATENT_S_ADV_LOSS,numeric=False),
+           self.F_L: lambda row: get_config(row, "'layers':", post='),', loss = vae_config.FLIPPED_ADV_LOSS,numeric=False),
+
+           self.L_W:  lambda row: get_config(row, "'weight':", post=',', loss = vae_config.LATENT_S_ADV_LOSS),
+           self.F_W:  lambda row: get_config(row, "'weight':", post=',', loss = vae_config.FLIPPED_ADV_LOSS),
+           self.K_W:  lambda row: get_config(row, "'weight':", post=',', loss = vae_config.KL_SENSITIVE_LOSS),
+           self.P_W:  lambda row: get_config(row, "'weight':", post='}', loss = vae_config.POS_VECTOR_LOSS),
+           self.RE_W:  lambda row: get_config(row, "'weight':", post='}', loss = vae_config.RECON_LOSS),
+           self.KL_W:  lambda row: get_config(row, "'weight':", post='}', loss = vae_config.KL_DIV_LOSS),
            
            self.ACC_SF_TO: lambda row: row["accuracy"]*row["[SF] Statistical Parity Subgroup Fairness"]
         }

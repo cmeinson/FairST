@@ -6,7 +6,7 @@ from .file_reader import ResultsReader
 from src.ml_models.FYP_VAE.configs import VAEMaskConfig as vae_config  # has losses
 from src.tester import Tester  # has bias mits
 from .other_col_reader import get_config
-
+import numpy as np
 
 
 class ResultsGrapher:
@@ -17,7 +17,7 @@ class ResultsGrapher:
         self.use_comment_as_label = True
 
     def plot_metrics_vs_metric(
-        self, metric="accuracy", metrics=None, relative=True, mean=True
+        self, metric="accuracy", metrics=None, relative=True, mean=True, mean_all_same_loss = False
     ):
         self.reader.add_metrics([metric])
         if metrics is None:
@@ -25,7 +25,11 @@ class ResultsGrapher:
         else:
             self.reader.add_metrics(metrics)
 
-        plot_f = lambda p, df, y_m: self._plot_metric_vs_metric(
+        plot_mvm_f = self._plot_metric_vs_metric
+        if mean_all_same_loss:
+            plot_mvm_f = self._plot_metric_vs_metric_mean_each_loss
+
+        plot_f = lambda p, df, y_m: plot_mvm_f(
             p, df, y_m, x_metric=metric
         )
         self._plot_all_filter_values(metrics, plot_f, relative, mean)
@@ -51,13 +55,7 @@ class ResultsGrapher:
             }
             if row[ResultsReader.BIAS_MIT] not in methods: return row[ResultsReader.BIAS_MIT]
             return methods[row[ResultsReader.BIAS_MIT]]
-        # TODO: DEL temp patch 
-        if "mse2" in row[ResultsReader.OTHER]:
-            return "[mse2]"
-        if "mse" in row[ResultsReader.OTHER]:
-            return "mse"
-        
-        
+
         name = ""
         losses = [
             vae_config.LATENT_S_ADV_LOSS,
@@ -83,8 +81,7 @@ class ResultsGrapher:
             "FP":8,
             "KP":6,
             "VAE":7,
-            "P": 1,
-            "[mse2]": 5,
+            "P": 1
         }
         if label not in colors:
             return self.cmap(7)
@@ -124,7 +121,48 @@ class ResultsGrapher:
         plt.xlabel(x_metric)
         plt.xticks(rotation=45, ha='right')
         plt.ylabel(y_metric.split("]")[0] + "]")
-        
+
+    def _plot_metric_vs_metric_mean_each_loss(self, cur_plt, df, y_metric, x_metric):
+        label_col = ResultsReader.OTHER
+        # TODO: make it such that each loss combo is separate))?????/
+        points = {} # [x val][label] -> list of values
+        for i, label in enumerate(df[label_col].unique()):
+            for index, row in df[df[label_col] == label].iterrows():
+                point_label=self._row_label_generator(row)
+
+                if row[x_metric] not in points:
+                    points[row[x_metric]] = {}
+                
+                if point_label not in points[row[x_metric]]:
+                    points[row[x_metric]][point_label] = []
+
+                points[row[x_metric]][point_label].append(row[y_metric])
+
+        for x_val in points:
+            for point_label in points[x_val]:
+                y_vals = points[x_val][point_label]
+                color = self.get_color(point_label)
+
+                cur_plt.text(
+                    x_val,
+                    np.mean(y_vals),
+                    point_label,
+                    fontsize=12,
+                    ha="right",
+                    va="bottom",
+                    color=color,
+                )
+
+                cur_plt.scatter(
+                    x_val,
+                    np.mean(y_vals),
+                    label=self._get_legend_text(label),
+                    color=color,
+                )
+
+        plt.xlabel(x_metric)
+        plt.xticks(rotation=45, ha='right')
+        plt.ylabel(y_metric.split("]")[0] + "]")
 
     def _plot_each_metric(self, title, metrics, plot_f, relative, mean):
         df = self.reader.get_filtered_metrics(mean=mean, relative=relative)
