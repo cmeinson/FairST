@@ -19,8 +19,8 @@ class VAEMaskConfig:
         for loss in losses_used:
             self.config_loss(loss)
 
-        print("VAE, CONF", self.epochs,self.latent_dim,self.vae_layers,self.lossed_used,self.lr)
-        print("LOSS CONFIG:", self.loss_configs)
+        #print("VAE, CONF", self.epochs,self.latent_dim,self.vae_layers,self.lossed_used,self.lr)
+        #print("LOSS CONFIG:", self.loss_configs)
 
 
     def config_loss(self, loss_name, **kwargs):
