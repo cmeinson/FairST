@@ -10,6 +10,7 @@ class TestConfig:
         self.sensitive_attr = sensitive_attr
         self.base_model_bias_mit = base_model_bias_mit # for post porc methods
         self.other=other
+        self.n_cols = None
 
     def __hash__(self):
         str_other = {}

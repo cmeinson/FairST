@@ -159,17 +159,21 @@ class VAEMaskModel(Model):
         loss_config = self._vm_config.loss_configs[name]
         return classes[name](loss_config)
     
-    def _set_mask_values_and_weights(self, X: pd.DataFrame, sens_column_ids):
+    def _set_mask_values_and_weights(self, X: pd.DataFrame, sens_column_ids):        
         if self._vm_config.mask_values is not None:
-            self._mask_weights = {tuple(self._vm_config.mask_values): 1}
-            return
+            if self._vm_config.mask_values != -1:  
+                self._mask_weights = {tuple(self._vm_config.mask_values): 1}
+                return
 
         tensor_values = list(map(tuple, X.iloc[:, sens_column_ids].values))
         n = len(tensor_values)
         counts = dict(Counter(tensor_values))
         
         for attrs, count in counts.items():
-            if count>0:
+            if self._vm_config.mask_values == -1: # equal weights
+                self._mask_weights[attrs] = 1/len(attrs)
+                
+            elif count>0: # proportional weights
                 self._mask_weights[attrs] = count/n
 
         print(self._mask_weights)

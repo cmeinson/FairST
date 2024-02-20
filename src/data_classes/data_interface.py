@@ -68,7 +68,7 @@ class Data:
         # TODO; func that would reverse one hot enc for diplay opurposes?
         self._untransformed_cols = self._get_columns(self.dataset_orig, preprocessing)
         self._X = self._std_data_transform(self._untransformed_cols)
-  
+        self.n_cols = len(self._X.columns)
         # data split
         self.new_data_split()
 

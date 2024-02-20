@@ -3,6 +3,8 @@ from typing import List, Dict, Any
 import numpy as np
 import pandas as pd
 
+from aif360.datasets import BinaryLabelDataset
+from aif360.algorithms.preprocessing import LFR
 
 import pandas as pd
 import numpy as np
@@ -68,7 +70,7 @@ class LFRModel(Model):
 
         self._model = self._get_model()
 
-        self._model.fit(dataset_transf.features, y)
+        self._fit(self._model, dataset_transf.features, y)
 
     def predict(self, X: pd.DataFrame, binary = True) -> np.array:
         if len(self._config.sensitive_attr)>1:
@@ -85,7 +87,5 @@ class LFRModel(Model):
         )
 
         dataset_transf = self._TR_model.transform(dataset)
-        preds = self._model.predict_proba(dataset_transf.features)[:,1] 
-        if not binary:
-            return preds
-        return self._binarise(preds)
+        return self._predict(self._model, dataset_transf.features, binary = binary)
+    

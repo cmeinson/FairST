@@ -6,6 +6,7 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import SVC
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import ElasticNet
 from sklearn.naive_bayes import GaussianNB
 from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeRegressor,DecisionTreeClassifier
@@ -22,6 +23,8 @@ import torch.nn.functional as F
 
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
+from keras.callbacks import EarlyStopping
+
 from keras.models import Sequential
 from keras.layers import Activation
 from keras.optimizers import SGD
@@ -38,6 +41,7 @@ class Model:
     NN_C = "nn keras"
     MLP_C = "MLPClassifier"
     NB_C = "NaiveBayes"
+    EN_R = "ElasticNet"
 
     def __init__(self, config: TestConfig) -> None:
         """
@@ -55,6 +59,16 @@ class Model:
         """
         raise NotImplementedError
 
+    def _fit(self, model, X, y, sample_weight = None, epochs = 1000):
+        if isinstance(model, Sequential):
+            early_stopping = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
+            model.fit(X, y, sample_weight = sample_weight, epochs = epochs, callbacks=[early_stopping])
+        elif isinstance(model, MLPClassifier):
+            model.fit(X, y)
+        else:
+            model.fit(X, y, sample_weight = sample_weight)
+        
+    
     def predict(self, X: pd.DataFrame, binary = True) -> np.array:
         """ Uses the previously trained ML model
 
@@ -64,12 +78,24 @@ class Model:
         :return: predictions for each row of X
         :rtype: np.array
         """
+        return self._predict(self._model, X, binary)
+    
+    def _predict(self, model, X: pd.DataFrame, binary = True) -> np.array:
+        if isinstance(model, Sequential):
+            preds = model.predict(X)
+        elif isinstance(model, ElasticNet) or isinstance(model, DecisionTreeRegressor):
+            preds = model.predict(X)
+        elif isinstance(model, BaseModel):
+            preds = model.predict(X, binary = binary)
+        else:
+            if binary:
+                return model.predict(X)
+            # NOTE: mentioned that pfor NB predict proba is not the best!
+            return model.predict_proba(X)[:,1]
+    
         if binary:
-            return self._model.predict(X)
-        # TODO: make this into ._predict functionality
-        # TODO: not sure predict proba is the way to go for all modes!!!!
-        # NOTE: mentioned that pfor NB predict proba is not the best!
-        return self._model.predict_proba(X)[:,1]
+            return self._binarise(preds)
+        return preds  
     
         
     def _get_model(self, method = None):
@@ -85,11 +111,11 @@ class Model:
             return KNeighborsClassifier(k)
         elif method == self.NN_C:
             model = Sequential()
-            model.add(Dense(45, input_dim=other["input_dim"] ,
+            model.add(Dense(128, input_dim=self._config.n_cols,
                 activation="relu"))
-            model.add(Dense(45, activation="relu", kernel_initializer="uniform"))
-            model.add(Dense(30, activation="relu", kernel_initializer="uniform"))
-            model.add(Dense(15, activation="relu", kernel_initializer="uniform"))
+            model.add(Dense(64, activation="relu", kernel_initializer="uniform"))
+            model.add(Dense(32, activation="relu", kernel_initializer="uniform"))
+            model.add(Dense(16, activation="relu", kernel_initializer="uniform"))
             model.add(Dense(1))
             model.add(Activation("sigmoid"))
             sgd = SGD(learning_rate=0.001, clipnorm=1)
@@ -98,13 +124,15 @@ class Model:
             return model
         elif method == self.MLP_C:
             iter = 500 if ("iter_1" not in other) else other["iter_1"] 
-            return MLPClassifier(max_iter= iter, hidden_layer_sizes=(128, 32, 32))
+            return MLPClassifier(max_iter=iter, hidden_layer_sizes=(128, 64, 32, 16))
         elif method == self.NB_C:
             return GaussianNB()
         elif method == self.RF_C:
             return RandomForestClassifier()
         elif method == self.DT_C:
             return DecisionTreeClassifier()
+        elif method == self.EN_R:
+            return ElasticNet(alpha=0.05)
         elif method == self.DT_R:
             return DecisionTreeRegressor()
         elif method == self.LG_R:
@@ -113,7 +141,7 @@ class Model:
             raise RuntimeError("Invalid ml method name: ", method)
         
     def _is_regression(self, method):
-        return method in [self.LG_R, self.DT_R]
+        return method in [self.LG_R, self.DT_R, self.EN_R]
     
     def _binarise(self, y: np.array) -> np.array:
         y[y>=0.5] = 1

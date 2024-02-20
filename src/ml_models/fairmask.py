@@ -31,14 +31,21 @@ class FairMaskModel(Model):
         for attr in self._config.sensitive_attr: # ngl this code very sketchy but whatever will just copy what they did for now 
             mask_model = self._get_model(self._config.bias_ml_method)
 
+            # TODO: FIGURE THIS ISH OUT!!!!!!
+            self._fit(mask_model, X_non_sens, X[attr])
+            
+            """
             if not self._is_regression(self._config.bias_ml_method): # if a classifier
-                mask_model.fit(X_non_sens, X[attr])
+                self._fit(mask_model, X_non_sens, X[attr])
             else: # if regression
                 clf = self._get_model()
-                clf.fit(X_non_sens, X[attr])
-                y_proba = clf.predict_proba(X_non_sens)
+                self._fit(clf, X_non_sens, X[attr])
+                #clf.fit(X_non_sens, X[attr])
+                y_proba = self._predict(clf, X_non_sens, binary=False)
+                # y_proba = clf.predict_proba(X_non_sens)
                 y_proba = [each[1] for each in y_proba]
                 mask_model.fit(X_non_sens, y_proba)
+            """
             self._mask_models[attr] = mask_model 
             
         # Build the model for the actual prediction
@@ -56,10 +63,7 @@ class FairMaskModel(Model):
         :rtype: np.array
         """
         X_masked = self._mask(X)
-        preds = self._model.predict(X_masked, binary=False)
-        if not binary:
-            return preds
-        return self._binarise(preds)
+        return self._predict(self._model, X_masked, binary=binary)
         
     def _mask(self, X: pd.DataFrame):
         threshold = 0.5

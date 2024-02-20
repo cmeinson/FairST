@@ -22,6 +22,11 @@ class Metrics:
     F1 = "f1score"
 
     MEAN_Y = "mean_pred"
+    
+    MEAN_S0_Y = "unprivileged mean_pred"
+    MEAN_S1_Y = "privileged mean_pred"
+    ACC_S0 = "unprivileged acc"
+    ACC_S1 = "privileged acc"
 
     #fairness metrics
     AOD = "[AOD] Average Odds Difference"
@@ -75,7 +80,7 @@ class Metrics:
     @classmethod
     def get_attribute_dependant(cls):
         # metrics that need a single attribute as input
-        return [Metrics.AOD, Metrics.EOD, Metrics.SPD, Metrics.ERD, Metrics.A_AOD, Metrics.A_EOD, Metrics.A_SPD, Metrics.DI, Metrics.DI_FM, Metrics.FR, Metrics.ONE_SF, Metrics.ONE_DF]
+        return [Metrics.MEAN_S0_Y, Metrics.MEAN_S1_Y, Metrics.ACC_S0, Metrics.ACC_S1, Metrics.AOD, Metrics.EOD, Metrics.SPD, Metrics.ERD, Metrics.A_AOD, Metrics.A_EOD, Metrics.A_SPD, Metrics.DI, Metrics.DI_FM, Metrics.FR, Metrics.ONE_SF, Metrics.ONE_DF]
 
     @classmethod
     def get_attribute_independant(cls):
@@ -91,6 +96,10 @@ class Metrics:
             self.REC:   lambda _ : recall_score(self._y, self._preds),
             self.F1:    lambda _ : f1_score(self._y, self._preds),
             self.MEAN_Y:lambda _ : np.mean(self._preds),
+            self.MEAN_S0_Y:lambda attr : self.mean_attr_pred(attr, 0),
+            self.MEAN_S1_Y:lambda attr : self.mean_attr_pred(attr, 1),
+            self.ACC_S0:lambda attr : self.mean_attr_acc(attr, 0),
+            self.ACC_S1:lambda attr : self.mean_attr_acc(attr, 1),
             self.AOD:   self.aod,
             self.EOD:   self.eod,
             self.SPD:   self.spd,
@@ -139,11 +148,23 @@ class Metrics:
 
         return self._computed_cms[key]
     
-    def _get_attribute_cms(self, attribute: str):
-        # get separate cm for 0 and 1 labels of the attribute
+    def _get_attribute_idxs(self, attribute: str):
         idx0 = np.where(self._X[attribute] == 0)[0]
         idx1 = np.where(self._X[attribute] == 1)[0]
+        return idx0, idx1
+        
+    def _get_attribute_cms(self, attribute: str):
+        # get separate cm for 0 and 1 labels of the attribute
+        idx0, idx1 = self._get_attribute_idxs(attribute)
         return self._confusion_matrix(idx0), self._confusion_matrix(idx1)
+    
+    def mean_attr_pred(self, attribute, attr_val = 1):
+        idxs = self._get_attribute_idxs(attribute)[attr_val]
+        return np.mean(self._y[idxs])
+    
+    def mean_attr_acc(self, attribute, attr_val = 1):
+        idxs = self._get_attribute_idxs(attribute)[attr_val]
+        return accuracy_score(self._y[idxs], self._preds[idxs])
     
     def aod(self, attribute: str):
         # note that it is the abs aod

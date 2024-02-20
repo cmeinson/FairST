@@ -16,8 +16,8 @@ class ReweighingModel(Model):
         """
         self._model = self._get_model()
         
-        self._model.fit(X, y, sample_weight=self.Reweighing(X, y))
-
+        self._fit(self._model, X, y, sample_weight=self.Reweighing(X, y))
+        
     def Reweighing(self, X, y):
         groups_class = {}
         group_weight = {}

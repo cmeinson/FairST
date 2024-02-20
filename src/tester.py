@@ -79,6 +79,7 @@ class Tester:
             self._results_writer.change_id()
             # run each test config
             for conf in test_configs:
+                print("runnnnn", conf)
                 self._run_test(conf, save_intermid_results)
 
             # only update the data split for each data in self._initd_data dict. (the first it will have the same default)
@@ -92,6 +93,7 @@ class Tester:
     def _run_test(self, config: TestConfig, save_intermid: bool):
         retrys = 0
         data = self._get_dataset(config.preprocessing)
+        config.n_cols = data.n_cols
         model = self._get_model(config)
 
         while True:
@@ -114,6 +116,7 @@ class Tester:
                     break
                 #   TODO: should i write something to file abt the fail or at least print
             else:
+                print("adding result")
                 self._results_writer.add_result(config, evals, save_intermid)
                 break
 
