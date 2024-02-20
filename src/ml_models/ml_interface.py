@@ -27,7 +27,7 @@ from keras.callbacks import EarlyStopping
 
 from keras.models import Sequential
 from keras.layers import Activation
-from keras.optimizers import SGD
+from keras.optimizers import SGD, Adam
 from keras.layers import Dense
 from ..utils import TestConfig
 
@@ -61,8 +61,8 @@ class Model:
 
     def _fit(self, model, X, y, sample_weight = None, epochs = 1000):
         if isinstance(model, Sequential):
-            early_stopping = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
-            model.fit(X, y, sample_weight = sample_weight, epochs = epochs, callbacks=[early_stopping])
+            early_stopping = EarlyStopping(monitor='loss', patience=10, restore_best_weights=True)
+            model.fit(X, y, sample_weight = sample_weight, epochs = epochs, callbacks=[early_stopping], verbose=0)
         elif isinstance(model, MLPClassifier):
             model.fit(X, y)
         else:
@@ -82,7 +82,7 @@ class Model:
     
     def _predict(self, model, X: pd.DataFrame, binary = True) -> np.array:
         if isinstance(model, Sequential):
-            preds = model.predict(X)
+            preds = np.squeeze(model.predict(X))
         elif isinstance(model, ElasticNet) or isinstance(model, DecisionTreeRegressor):
             preds = model.predict(X)
         elif isinstance(model, BaseModel):
@@ -92,7 +92,7 @@ class Model:
                 return model.predict(X)
             # NOTE: mentioned that pfor NB predict proba is not the best!
             return model.predict_proba(X)[:,1]
-    
+
         if binary:
             return self._binarise(preds)
         return preds  
@@ -118,7 +118,7 @@ class Model:
             model.add(Dense(16, activation="relu", kernel_initializer="uniform"))
             model.add(Dense(1))
             model.add(Activation("sigmoid"))
-            sgd = SGD(learning_rate=0.001, clipnorm=1)
+            sgd = Adam(learning_rate=0.001, clipnorm=1)
             model.compile(loss="binary_crossentropy", optimizer=sgd,
                 metrics=["accuracy"])
             return model
@@ -145,8 +145,8 @@ class Model:
     
     def _binarise(self, y: np.array) -> np.array:
         y[y>=0.5] = 1
-        y[y<=0.5] = 0
-        return y
+        y[y<0.5] = 0
+        return y.astype(int)
     
 
 

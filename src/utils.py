@@ -67,4 +67,5 @@ class TestConfig:
             base_model_bias_mit = None,
             other = self.other            
         )
+        config.n_cols = self.n_cols
         return config

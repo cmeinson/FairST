@@ -4,7 +4,26 @@ from src import *
 import torch
 import sys
 
-n_repetitions = 2
+n_repetitions = 4
+results_filename = "MAIN_all_models_"
+comment = "FYP"
+
+losses = [
+        [VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS], 
+        [VAEMaskConfig.POS_VECTOR_LOSS,         VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS], 
+        [VAEMaskConfig.KL_SENSITIVE_LOSS,         VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS], 
+        [VAEMaskConfig.LATENT_S_ADV_LOSS,         VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS], 
+        [VAEMaskConfig.FLIPPED_ADV_LOSS,         VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS], 
+        [VAEMaskConfig.LATENT_S_ADV_LOSS, VAEMaskConfig.POS_VECTOR_LOSS,        VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS], 
+        [VAEMaskConfig.KL_SENSITIVE_LOSS, VAEMaskConfig.POS_VECTOR_LOSS,        VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS],
+        [VAEMaskConfig.FLIPPED_ADV_LOSS,  VAEMaskConfig.POS_VECTOR_LOSS,        VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS], 
+        [VAEMaskConfig.FLIPPED_ADV_LOSS,  VAEMaskConfig.KL_SENSITIVE_LOSS,        VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS], 
+        [VAEMaskConfig.FLIPPED_ADV_LOSS,  VAEMaskConfig.LATENT_S_ADV_LOSS,        VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS], 
+        [VAEMaskConfig.KL_SENSITIVE_LOSS,  VAEMaskConfig.LATENT_S_ADV_LOSS,        VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS], 
+    ]
+
+
+# ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 def try_test(results_filename, s, dataset, metric_names, mls, n_repetitions, attempts = 3):
     for i in range(attempts):
@@ -17,7 +36,7 @@ def try_test(results_filename, s, dataset, metric_names, mls, n_repetitions, att
             sys.exit()
         except Exception as e:
             print("failed test nr ",i+1, dataset, s)
-            raise e
+            #raise e
             
 def get_vaemask_config(epochs, latent_dim, lr, vae_layers, loss, loss_params, mask_value = None):
     config = VAEMaskConfig(epochs=epochs, latent_dim=latent_dim, lr=lr, losses_used=loss, vae_layers=vae_layers, mask_values=mask_value)
@@ -31,78 +50,44 @@ def get_vaemask_config(epochs, latent_dim, lr, vae_layers, loss, loss_params, ma
     config.config_loss(config.POS_VECTOR_LOSS, weight = loss_params["w_pos_sens"])
     
     return config
+
+
+def ml_configs(ml_model, fyp_losses, attrs, epochs, latent_dim, lr, vae_layers, loss_params, baselines=None):
+    fyp  = [
+        TestConfig(Tester.FYP_VAE, ml_model, sensitive_attr=attrs, other={"c": "MEAN W", VAEMaskModel.VAE_MASK_CONFIG:  
+            get_vaemask_config(epochs, latent_dim, lr, vae_layers, l, loss_params)}) for l in fyp_losses
+    ]
+    #fyp = []
+    available_base =  [  
+        TestConfig(Tester.BASE_ML, ml_model, sensitive_attr = attrs),   
+        TestConfig(Tester.FAIRMASK, ml_model, Model.DT_R, sensitive_attr=attrs),
+        TestConfig(Tester.FAIRBALANCE, ml_model, sensitive_attr=attrs),
+        TestConfig(Tester.REWEIGHING, ml_model, sensitive_attr=attrs),
+        TestConfig(Tester.LFR, ml_model, other={"c":"LFR"}, sensitive_attr = attrs), #base_model_bias_mit=Tester.REWEIGHING
+    ] 
+    if baselines==None:
+        return available_base + fyp
+    
+    bases = [config for config in available_base if config.bias_mit in baselines]
+    return bases + fyp
+    
             
 def run_all_losses(dataset, epochs, latent_dim, lr, vae_layers, loss_params):
     
-    results_filename = "MAIN_"
-    comment= "FYP"
-
-    losses = [
-        [VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS], 
-        #[VAEMaskConfig.POS_VECTOR_LOSS,         VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS], 
-        #[VAEMaskConfig.KL_SENSITIVE_LOSS,         VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS], 
-        #[VAEMaskConfig.LATENT_S_ADV_LOSS,         VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS], 
-        #[VAEMaskConfig.FLIPPED_ADV_LOSS,         VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS], 
-        #[VAEMaskConfig.LATENT_S_ADV_LOSS, VAEMaskConfig.POS_VECTOR_LOSS,        VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS], 
-        [VAEMaskConfig.KL_SENSITIVE_LOSS, VAEMaskConfig.POS_VECTOR_LOSS,        VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS],
-        #[VAEMaskConfig.FLIPPED_ADV_LOSS,  VAEMaskConfig.POS_VECTOR_LOSS,        VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS], 
-        #[VAEMaskConfig.FLIPPED_ADV_LOSS,  VAEMaskConfig.KL_SENSITIVE_LOSS,        VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS], 
-        [VAEMaskConfig.FLIPPED_ADV_LOSS,  VAEMaskConfig.LATENT_S_ADV_LOSS,        VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS], 
-        #[VAEMaskConfig.KL_SENSITIVE_LOSS,  VAEMaskConfig.LATENT_S_ADV_LOSS,        VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS], 
-    ]
     for s in [["race"],["sex"]]: #  ["sex","race"],["race"],["sex"]
         if dataset==Tester.GERMAN_D and "race" in s:
             continue
         # check German only run with sex
         
-        vae_LG  = [
-            TestConfig(Tester.FYP_VAE, Model.LG_R, sensitive_attr=s, other={"c": comment, VAEMaskModel.VAE_MASK_CONFIG:  
-                get_vaemask_config(epochs, latent_dim, lr, vae_layers, l, loss_params)}) for l in losses
-            ]
-        vae_LG_mean  = [
-            TestConfig(Tester.FYP_VAE, Model.LG_R, sensitive_attr=s, other={"c": "MEAN W", VAEMaskModel.VAE_MASK_CONFIG:  
-                get_vaemask_config(epochs, latent_dim, lr, vae_layers, l, loss_params, mask_value=-1)}) for l in losses
-            ]
-        mls_LG =  [  
-            TestConfig(Tester.BASE_ML, Model.LG_R , sensitive_attr = s),   
-            TestConfig(Tester.FAIRMASK, Model.LG_R, Model.DT_R, sensitive_attr=s),
-            TestConfig(Tester.FAIRBALANCE, Model.LG_R, sensitive_attr=s),
-            TestConfig(Tester.REWEIGHING, Model.LG_R, sensitive_attr=s),
-            #TestConfig(Tester.LFR, Model.LG_R, other={"c":"LFR"}, sensitive_attr = s), #base_model_bias_mit=Tester.REWEIGHING
-        ] + vae_LG_mean + vae_LG
-
-        vae_SV  = [
-            TestConfig(Tester.FYP_VAE, Model.SV_C, sensitive_attr=s, other={"c": comment, VAEMaskModel.VAE_MASK_CONFIG:  
-                get_vaemask_config(epochs, latent_dim, lr, vae_layers, l, loss_params)}) for l in losses
-            ]
-        vae_SV_mean  = [
-            TestConfig(Tester.FYP_VAE, Model.SV_C, sensitive_attr=s, other={"c": "MEAN W", VAEMaskModel.VAE_MASK_CONFIG:  
-                get_vaemask_config(epochs, latent_dim, lr, vae_layers, l, loss_params, mask_value=-1)}) for l in losses
-            ]
-        mls_SV =  [  
-            TestConfig(Tester.BASE_ML, Model.SV_C , sensitive_attr = s),   
-            TestConfig(Tester.FAIRMASK, Model.SV_C, Model.DT_R, sensitive_attr=s),
-            TestConfig(Tester.FAIRBALANCE, Model.SV_C, sensitive_attr=s),
-            TestConfig(Tester.REWEIGHING, Model.SV_C, sensitive_attr=s),
-            #TestConfig(Tester.LFR, Model.LG_R, other={"c":"LFR"}, sensitive_attr = s), #base_model_bias_mit=Tester.REWEIGHING
-        ] + vae_SV_mean + vae_SV
-        
-        
-        vae_MLP = [
-            TestConfig(Tester.FYP_VAE, Model.MLP_C, sensitive_attr=s, other={"c": comment, VAEMaskModel.VAE_MASK_CONFIG:  
-                get_vaemask_config(epochs, latent_dim, lr, vae_layers, l, loss_params)}) for l in losses
-            ]
-        vae_MLP_mean = [
-            TestConfig(Tester.FYP_VAE, Model.MLP_C, sensitive_attr=s, other={"c": "MEAN W", VAEMaskModel.VAE_MASK_CONFIG:  
-                get_vaemask_config(epochs, latent_dim, lr, vae_layers, l, loss_params, mask_value=-1)}) for l in losses
-            ]
-        mls_MLP =  [
-            TestConfig(Tester.BASE_ML, Model.MLP_C , sensitive_attr = s),   
-            TestConfig(Tester.FAIRMASK, Model.MLP_C, Model.DT_R, sensitive_attr=s),
-            #TestConfig(Tester.LFR, Model.MLP_C, other={"c":"LFR"}, sensitive_attr = s), #base_model_bias_mit=Tester.REWEIGHING
-        ] + vae_MLP_mean + vae_MLP
-        
-        mls = mls_SV + mls_LG + mls_MLP
+        mls = ( ml_configs(Model.LG_R, losses, s, epochs, latent_dim, lr, vae_layers, loss_params
+            ) + ml_configs(Model.SV_C, losses, s, epochs, latent_dim, lr, vae_layers, loss_params
+            ) + ml_configs(Model.NB_C, losses, s, epochs, latent_dim, lr, vae_layers, loss_params
+            ) + ml_configs(Model.RF_C, losses, s, epochs, latent_dim, lr, vae_layers, loss_params
+            ) + ml_configs(Model.DT_R, losses, s, epochs, latent_dim, lr, vae_layers, loss_params
+            ) + ml_configs(Model.EN_R, losses, s, epochs, latent_dim, lr, vae_layers, loss_params
+            ) + ml_configs(Model.NN_C, losses, s, epochs, latent_dim, lr, vae_layers, loss_params)) # TODO: need to add input dim
+                
+        mls = ml_configs(Model.NN_C, losses, s, epochs, latent_dim, lr, vae_layers, loss_params)
         try_test(results_filename, s, dataset, metric_names, mls, n_repetitions)
         
 
@@ -141,5 +126,4 @@ for e in range(10):
         print(e, " iteration of 2x dataset:", dataset)
         print('~'*100)
         run_all_losses(dataset, default_values[0], default_values[1], default_values[2], default_values[3], loss_params)
-
 

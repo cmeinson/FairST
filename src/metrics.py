@@ -89,7 +89,6 @@ class Metrics:
     
     def get(self, metric_name, attr: List[str] or str = None):
         self._last_call = metric_name
-
         metrics_dict = {
             self.ACC:   lambda _ : accuracy_score(self._y, self._preds),
             self.PRE:   lambda _ : precision_score(self._y, self._preds),
