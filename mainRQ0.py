@@ -5,7 +5,7 @@ import torch
 import sys
 
 n_repetitions = 4
-results_filename = "MAIN_all_models_"
+results_filename = "MAIN_all_"
 comment = "FYP"
 
 losses = [
@@ -87,7 +87,7 @@ def run_all_losses(dataset, epochs, latent_dim, lr, vae_layers, loss_params):
             ) + ml_configs(Model.EN_R, losses, s, epochs, latent_dim, lr, vae_layers, loss_params
             ) + ml_configs(Model.NN_C, losses, s, epochs, latent_dim, lr, vae_layers, loss_params)) # TODO: need to add input dim
                 
-        mls = ml_configs(Model.NN_C, losses, s, epochs, latent_dim, lr, vae_layers, loss_params)
+        #mls = ml_configs(Model.NN_C, losses, s, epochs, latent_dim, lr, vae_layers, loss_params)
         try_test(results_filename, s, dataset, metric_names, mls, n_repetitions)
         
 
