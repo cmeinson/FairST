@@ -8,6 +8,8 @@ from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_sc
 from sklearn.metrics import confusion_matrix
 
 
+NO_EXCEPTIONS = True # even if div by 0 in metrc, still save results just as a very unrealistic value
+
 class MetricException(Exception):
     pass
 
@@ -139,6 +141,7 @@ class Metrics:
             tn, fp, fn, tp = confusion_matrix(self._y[idxs], self._preds[idxs]).ravel()
             cm = {'tp':tp, 'tn':tn, 'fp':fp, 'fn':fn, 'p': tp+fp, 'n':tn+fn}
             # TODO: what if there are no positive / negative labels at all
+            # div by 0 if there are no positive / negative labels at -all should not be the case
             cm['tpr'] = tp / self._div_guard(tp + fn)
             cm['fpr'] = fp / self._div_guard(fp + tn)
             cm['pr'] = cm['p'] / (cm['p'] + cm['n'])
@@ -189,14 +192,18 @@ class Metrics:
         if cm0['pr'] == 0  and cm1['pr'] == 0:
             return 1 # NOTE! 1 if they are the same!!
         if cm1['pr'] == 0:
+            if NO_EXCEPTIONS:
+                return - 10**3
             raise MetricException("DI fail pr1 = 0", attribute)
-        return cm0['pr']/cm1['pr'] # pos if underrepresented preferred
+        return cm0['pr']/cm1['pr'] # always pos. mre than 1 if underrepresented preferred
     
     def di_fm(self, attribute: str) -> float:
         cm0, cm1 = self._get_attribute_cms(attribute)
         if cm0['pr'] == 0  and cm1['pr'] == 0:
             return 0 # NOTE! 0 if they are the same!!
         if cm0['pr'] == 0:
+            if NO_EXCEPTIONS:
+                return - 10**3
             raise MetricException("DI FM fail pr0 = 0", attribute)
         return abs(1-cm1['pr']/cm0['pr'])
     
@@ -239,6 +246,8 @@ class Metrics:
         if (prob_sg1 == prob_sg2):
             return 1
         elif prob_sg1==0 or prob_sg2==0:   
+            if NO_EXCEPTIONS:
+                return - 10**3
             raise MetricException("DF fail")
         return prob_sg1 / prob_sg2
 
