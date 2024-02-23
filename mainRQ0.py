@@ -54,7 +54,7 @@ def get_vaemask_config(epochs, latent_dim, lr, vae_layers, loss, loss_params, ma
 
 def ml_configs(ml_model, fyp_losses, attrs, epochs, latent_dim, lr, vae_layers, loss_params, baselines=None):
     fyp  = [
-        TestConfig(Tester.FYP_VAE, ml_model, sensitive_attr=attrs, other={"c": "MEAN W", VAEMaskModel.VAE_MASK_CONFIG:  
+        TestConfig(Tester.FYP_VAE, ml_model, sensitive_attr=attrs, other={"c": comment, VAEMaskModel.VAE_MASK_CONFIG:  
             get_vaemask_config(epochs, latent_dim, lr, vae_layers, l, loss_params)}) for l in fyp_losses
     ]
     #fyp = []
@@ -97,14 +97,14 @@ torch.autograd.set_detect_anomaly(True)
 
 
 
-datasets = [Tester.COMPAS_D, Tester.GERMAN_D, Tester.ADULT_D]
+datasets = [Tester.COMPAS_D, Tester.ADULT_D]
 defaults = [
     (1800, 17, 0.006, (100, 75, 50)),
-    (1500, 20, 0.006, (75, 60, 30, 15)),
     (1500, 30, 0.006, (75, 60, 30, 30)),
 ]
 metric_names = [Metrics.ACC, Metrics.PRE, Metrics.REC, Metrics.F1,Metrics.MEAN_Y, Metrics.ERD, Metrics.AOD, Metrics.EOD, Metrics.A_AOD, Metrics.A_EOD, Metrics.A_SPD, Metrics.SPD, Metrics.DI_FM, Metrics.SF]
 
+metric_names = Metrics.get_all_names()
 
 loss_params = {
     "w_kl_div" : 0.05,
@@ -118,12 +118,42 @@ loss_params = {
     "layers_latent_s" : (75, 30, 10), 
     "layers_flipped" : (75, 30, 10)
 }
-        
 
+#results_filename = "MAKESUREMETRICWORKMAIN_all_2_"
+
+# ask llm to make questions about that retrieved datasets
+# for pos and neg examples
+# make somne questions yourself.
+
+
+
+# done: 5 (#4) it of compas, 4 it of adult. NOTE: they were done without all metrics. will keep results for now and reso the fist batch if i will report on the unmeasured metircs
+# did 4.5 it or german. removed that dataset as it is too small.
+
+# run the 5th it of adult
+dataset, default_values = datasets[1], defaults[1]
+print('~'*1000)
+print(4, " iteration of 4x dataset:", dataset)
+print('~'*100)
+run_all_losses(dataset, default_values[0], default_values[1], default_values[2], default_values[3], loss_params)
+
+
+
+for e in range(5):
+    for dataset, default_values in zip(datasets, defaults):
+        print('~'*1000)
+        print(e+5, " iteration of 4x dataset:", dataset)
+        print('~'*100)
+        run_all_losses(dataset, default_values[0], default_values[1], default_values[2], default_values[3], loss_params)
+
+
+
+results_filename = "MAIN_all_2_"
+# KEEP GOING WITH THE EXPERIMENTS IF DONE WITH FIRST BATCH
 for e in range(10):
     for dataset, default_values in zip(datasets, defaults):
         print('~'*1000)
-        print(e, " iteration of 2x dataset:", dataset)
+        print(e+10, " iteration of 4x dataset:", dataset)
         print('~'*100)
         run_all_losses(dataset, default_values[0], default_values[1], default_values[2], default_values[3], loss_params)
 

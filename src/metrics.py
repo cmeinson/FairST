@@ -72,7 +72,7 @@ class Metrics:
 
     @classmethod
     def get_all_names(cls):
-        return Metrics.get_attribute_dependant() + Metrics.get_attribute_independant() + Metrics.get_subgroup_dependant()
+        return Metrics.get_attribute_independant() + Metrics.get_attribute_dependant() + Metrics.get_subgroup_dependant()
 
     @classmethod
     def get_subgroup_dependant(cls):
@@ -162,7 +162,7 @@ class Metrics:
     
     def mean_attr_pred(self, attribute, attr_val = 1):
         idxs = self._get_attribute_idxs(attribute)[attr_val]
-        return np.mean(self._y[idxs])
+        return np.mean(self._preds[idxs])
     
     def mean_attr_acc(self, attribute, attr_val = 1):
         idxs = self._get_attribute_idxs(attribute)[attr_val]
