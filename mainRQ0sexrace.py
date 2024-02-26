@@ -63,7 +63,7 @@ def ml_configs(ml_model, fyp_losses, attrs, epochs, latent_dim, lr, vae_layers, 
         TestConfig(Tester.FAIRMASK, ml_model, Model.DT_R, sensitive_attr=attrs),
         TestConfig(Tester.FAIRBALANCE, ml_model, sensitive_attr=attrs),
         TestConfig(Tester.REWEIGHING, ml_model, sensitive_attr=attrs),
-        TestConfig(Tester.LFR, ml_model, other={"c":"LFR"}, sensitive_attr = attrs), #base_model_bias_mit=Tester.REWEIGHING
+        #TestConfig(Tester.LFR, ml_model, other={"c":"LFR"}, sensitive_attr = attrs), #base_model_bias_mit=Tester.REWEIGHING
     ] 
     if baselines==None:
         return available_base + fyp
@@ -74,7 +74,7 @@ def ml_configs(ml_model, fyp_losses, attrs, epochs, latent_dim, lr, vae_layers, 
             
 def run_all_losses(dataset, epochs, latent_dim, lr, vae_layers, loss_params):
     
-    for s in [["race"],["sex"]]: #  ["sex","race"],["race"],["sex"]
+    for s in [["race","sex"]]: #  ["sex","race"],["race"],["sex"]
         if dataset==Tester.GERMAN_D and "race" in s:
             continue
         # check German only run with sex
@@ -119,33 +119,10 @@ loss_params = {
     "layers_flipped" : (75, 30, 10)
 }
 
-# done: 5 (#4) it of compas, 4 it of adult. NOTE: they were done without all metrics. will keep results for now and reso the fist batch if i will report on the unmeasured metircs
-# did 4.5 it or german. removed that dataset as it is too small.
 
-# run the 5th it of adult
-dataset, default_values = datasets[1], defaults[1]
-print('~'*1000)
-print(4, " iteration of 4x dataset:", dataset)
-print('~'*100)
-run_all_losses(dataset, default_values[0], default_values[1], default_values[2], default_values[3], loss_params)
-
-
-
-for e in range(5):
+for e in range(10):
     for dataset, default_values in zip(datasets, defaults):
         print('~'*1000)
         print(e+5, " iteration of 4x dataset:", dataset)
         print('~'*100)
         run_all_losses(dataset, default_values[0], default_values[1], default_values[2], default_values[3], loss_params)
-
-
-
-results_filename = "MAIN_all_2_"
-# KEEP GOING WITH THE EXPERIMENTS IF DONE WITH FIRST BATCH
-for e in range(10):
-    for dataset, default_values in zip(datasets, defaults):
-        print('~'*1000)
-        print(e+10, " iteration of 4x dataset:", dataset)
-        print('~'*100)
-        run_all_losses(dataset, default_values[0], default_values[1], default_values[2], default_values[3], loss_params)
-
