@@ -75,6 +75,11 @@ class ResultsReader:
     def change_other_to_losses(self):
         # edit the "other" col values to have just the lossed used"
         self.df[self.OTHER] = self.df[self.OTHER].apply(self._get_losses_used)
+    
+    def change_other_to_comment(self):
+        # edit the "other" col values to have just the lossed used"
+        self.df[self.OTHER] = self.df[self.OTHER].apply(lambda x: x.split(',')[0].strip())
+
         
     def _get_losses_used(self, other):
         other = other.split("losses_used=[")[-1]
@@ -134,19 +139,19 @@ class ResultsReader:
         # take mean over same config aka "other col value"
         return self._get_mean_metrics(df)
     
-    def get_mean_relative_metrics(self, base = None):
+    def get_mean_relative_metrics(self, base = None, use_percent = False):
         """ FILTERED, SELECTED COLUMNS, MEAN, RELATIVE
         returns metric values with respect to the given "base" bias mitigation method of the same experiment.
         returns metric values averaged over all runs of the experiment with the same config.
         returns selected columns based on the row filters.
         by default returns all filterable columns and all metric columns.
         """
-        df = self.get_relative_metrics(base)
+        df = self.get_relative_metrics(base, use_percent=use_percent)
         # take mean over same config aka "other col value"
         return self._get_mean_metrics(df)
     
     
-    def get_relative_metrics(self, base = None):
+    def get_relative_metrics(self, base = None, use_percent = False):
         """ FILTERED, SELECTED COLUMNS, RELATIVE
         returns metric values with respect to the given "base" bias mitigation method of the same experiment.
         returns selected columns based on the row filters.
@@ -167,7 +172,10 @@ class ResultsReader:
                 #print("base",base_row[self.FILTERABLE + ["accuracy", "id"]])
                 for metric in self.metrics:
                     if not isinstance(df.loc[index, metric], str):
-                        df.loc[index, metric] = row[metric] - base_row[metric].values[0]
+                        if use_percent:
+                            df.loc[index, metric] = row[metric]/base_row[metric].values[0]
+                        else:
+                            df.loc[index, metric] = row[metric] - base_row[metric].values[0]
             except Exception as e:
                 df.loc[index, metric] = 0
                 print("unable to find base for", index, e)
@@ -179,6 +187,7 @@ class ResultsReader:
     
     def _get_mean_metrics(self, df):
         mean_df = df.groupby(self.filterable).mean().reset_index()
+        #mean_df = df.groupby([self.DATASET, self.BIAS_MIT, self.ML]).mean().reset_index()
         return mean_df  
             
         
