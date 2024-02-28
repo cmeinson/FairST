@@ -9,7 +9,7 @@ import numpy as np
 import numpy as np
 from sklearn.model_selection import train_test_split
 
-from ..utils import TestConfig
+from ..test_config import TestConfig
 
 
 

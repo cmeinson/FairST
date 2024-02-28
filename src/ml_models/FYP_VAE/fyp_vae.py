@@ -9,7 +9,7 @@ import torch.optim as optim
 import torch.nn.functional as F
 from .models import *
 from .losses import *
-from ...utils import TestConfig
+from ...test_config import TestConfig
 from .configs import VAEMaskConfig
 from collections import Counter
 

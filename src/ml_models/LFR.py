@@ -10,7 +10,7 @@ import pandas as pd
 import numpy as np
 
 import numpy as np
-from ..utils import TestConfig
+from ..test_config import TestConfig
 
 
 class LFRModel(Model):

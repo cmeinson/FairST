@@ -29,7 +29,7 @@ from keras.models import Sequential
 from keras.layers import Activation
 from keras.optimizers import SGD, Adam
 from keras.layers import Dense
-from ..utils import TestConfig
+from ..test_config import TestConfig
 
 class Model:
     LG_R = "LogisticRegression" 

@@ -2,7 +2,7 @@ from .ml_interface import Model
 import pandas as pd
 import numpy as np
 from typing import List, Dict, Any
-from ..utils import TestConfig
+from ..test_config import TestConfig
 
 
 class FairMaskModel(Model):

@@ -16,7 +16,7 @@ from .ml_models import (
 )
 from .data_classes import AdultData, CompasData, GermanData, MEPSData, DummyData, Data
 from .metrics import Metrics, MetricException
-from .utils import TestConfig
+from .test_config import TestConfig
 from .result_writer import ResultsWriter
 
 MAX_RETRY = 15

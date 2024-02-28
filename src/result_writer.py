@@ -1,7 +1,7 @@
 
 from typing import Dict, List
 import pandas as pd
-from .utils import TestConfig
+from .test_config import TestConfig
 import numpy as np
 from os import path
 from .ml_models import  VAEMaskModel

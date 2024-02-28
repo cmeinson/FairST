@@ -3,6 +3,8 @@ from src.tester import Tester
 import numpy as np
 from .other_col_reader import OtherColReader
 
+
+
 class ResultsReader:
     # TODO: allor reading of multiple files
     DROP_COLUMNS = ["time", 'bias mit ML method', "reps"]
@@ -20,8 +22,10 @@ class ResultsReader:
     VAR_PREFIX = "VAR|"  
     FYP_VAE = Tester.FYP_VAE
     BASE = Tester.BASE_ML
-    def __init__(self, file_path):
-        self.file_path = file_path
+    def __init__(self, file_paths):
+        if isinstance(file_paths, str): # backwards compatability :)
+            file_paths = [file_paths]
+        self.file_paths = file_paths
         self.df = None
         self.metrics = []
         
@@ -33,16 +37,30 @@ class ResultsReader:
         ocr = OtherColReader(self.df)
         self.add_column = ocr.add_col
         self.relative_metrics_filter = lambda df: df
-        
 
     def read_csv(self):
-        try:
-            df = pd.read_csv(self.file_path)
-            print(f"File '{self.file_path}' successfully loaded as DataFrame.")
-        except Exception as e:
-            print(f"Error: Unable to open '{self.file_path}'", e)
+        dfs = []
+
+        for file_path in self.file_paths:
+            try:
+                df = pd.read_csv(file_path)
+                print(f"File '{file_path}' successfully loaded as DataFrame.")
+                dfs.append(df)
+            except Exception as e:
+                print(f"Error: Unable to open '{file_path}'", e)
+
+        common_columns = set(dfs[0].columns)
+        for df in dfs[1:]:
+            common_columns &= set(df.columns)
             
-        self.df = self._proccess_df(df)
+        common_columns = [val for val in dfs[0].columns if val in common_columns] # keeping the og order
+
+        # Select only the common columns from each DataFrame
+        for i, df in enumerate(dfs):
+            dfs[i] = df[list(common_columns)]
+            
+        self.df = pd.concat(dfs, ignore_index=True)
+        self.df = self._proccess_df(self.df)
         
     def add_metrics(self, names: list):
         for name in names:
@@ -66,7 +84,6 @@ class ResultsReader:
         df[self.ID] = df[self.ID]
 
         non_metric_cols = self.FILTERABLE + [self.ID]
-        
         
         self.metrics = [col for col in df.columns if col not in non_metric_cols]
         

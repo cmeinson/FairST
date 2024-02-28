@@ -341,7 +341,10 @@ class ResultsGrapher:
                     self.reader.set_filter(ResultsReader.ML, ml)
                     self.reader.set_filter(ResultsReader.ATTR, [attrs])
 
-                    title = f"{ml} on {dataset} with protected {attrs}"
+                    ml_title = ml[0]
+                    if len(ml)>1:
+                        ml_title = [n[0] for n in ml]
+                    title = f"{ml_title} on {dataset} with protected {attrs}"
                     print("_" * 100)
                     print(dataset, ",", ml, attrs)
                     self._plot_each_metric(title, metrics, plot_f, relative, mean)
