@@ -4,8 +4,8 @@ FYP VAE,"'Sensitive KL loss', 'Latent sens ADV loss', 'Reconstruction loss', 'KL
 FYP VAE,"'Sensitive KL loss', 'Pos Y vec loss', 'Reconstruction loss', 'KL divergence loss'",65,46,150,99,9,16,7,7,7
 FYP VAE,"'Sensitive KL loss', 'Reconstruction loss', 'KL divergence loss'",75,53,147,89,11,22,3,3,3
 FairBalance Bias Mitigation,{},84,163,22,34,45,73,46,65,46
-FairMask Bias Mitigation,{},133,125,142,130,145,151,147,151,147
+FairMask Bias Mitigation,{},132,124,141,129,144,150,146,150,146
 LFR,{'c': 'LFR'},123,133,89,94,16,25,16,15,16
-No Bias Mitigation,{},225,225,225,225,225,225,225,225,225
+No Bias Mitigation,{},224,224,224,224,224,224,224,224,224
 Reweighing Bias Mitigation,{},92,78,128,94,27,41,23,23,23
-,,225,225,225,225,225,225,225,225,225
+,,224,224,224,224,224,224,224,224,224
