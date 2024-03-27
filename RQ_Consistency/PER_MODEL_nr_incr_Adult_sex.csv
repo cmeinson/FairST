@@ -1,0 +1,10 @@
+bias mitigation,other,DecisionTreeRegressor,ElasticNet,LogisticRegression,NaiveBayes,RandomForestClassifier,SupportVectorClassifier,nn keras
+FYP VAE,"'Flipped ADV loss', 'Sensitive KL loss', 'Reconstruction loss', 'KL divergence loss'",0,0,0,0,0,0,0
+FYP VAE,"'Sensitive KL loss', 'Latent sens ADV loss', 'Reconstruction loss', 'KL divergence loss'",0,0,0,0,0,0,0
+FYP VAE,"'Sensitive KL loss', 'Pos Y vec loss', 'Reconstruction loss', 'KL divergence loss'",0,0,0,0,0,0,0
+FYP VAE,"'Sensitive KL loss', 'Reconstruction loss', 'KL divergence loss'",0,0,0,0,0,0,0
+FairBalance Bias Mitigation,{},37,40,3,0,40,40,38
+FairMask Bias Mitigation,{},14,40,0,0,21,40,26
+LFR,{'c': 'LFR'},7,38,0,0,14,3,25
+No Bias Mitigation,{},40,40,40,40,40,40,40
+Reweighing Bias Mitigation,{},0,0,0,0,1,0,1

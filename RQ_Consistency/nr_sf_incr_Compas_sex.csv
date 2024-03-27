@@ -1,0 +1,11 @@
+bias mitigation,other,accuracy,precision,recall,f1score,sex|[A_AOD] Absolute Average Odds Difference,sex|[A_EOD] Absolute Equal Opportunity Difference,sex|[A_SPD] Absolute Statistical Parity Difference,sex|[DI_FM] Disparate Impact the way it was implemented in FairMask,[SF] Statistical Parity Subgroup Fairness
+FYP VAE,"'Flipped ADV loss', 'Sensitive KL loss', 'Reconstruction loss', 'KL divergence loss'",74,61,171,113,30,33,8,12,8
+FYP VAE,"'Sensitive KL loss', 'Latent sens ADV loss', 'Reconstruction loss', 'KL divergence loss'",74,74,168,103,23,33,5,5,5
+FYP VAE,"'Sensitive KL loss', 'Pos Y vec loss', 'Reconstruction loss', 'KL divergence loss'",70,59,176,101,23,36,8,10,8
+FYP VAE,"'Sensitive KL loss', 'Reconstruction loss', 'KL divergence loss'",76,70,175,103,27,35,5,7,5
+FairBalance Bias Mitigation,{},97,195,24,32,34,57,30,38,30
+FairMask Bias Mitigation,{},152,149,175,153,53,64,52,52,52
+LFR,{'c': 'LFR'},146,155,97,99,28,34,14,14,14
+No Bias Mitigation,{},280,280,280,280,280,280,280,280,280
+Reweighing Bias Mitigation,{},117,112,131,104,35,47,31,30,31
+,,280,280,280,280,280,280,280,280,280

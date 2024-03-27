@@ -25,7 +25,7 @@ losses = [
 
 # ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-def try_test(results_filename, s, dataset, metric_names, mls, n_repetitions, attempts = 3):
+def _try_test(results_filename, s, dataset, metric_names, mls, n_repetitions, attempts = 3):
     for i in range(attempts):
         try:
             results_file = os.path.join("results",results_filename +"_".join(s)+".csv")
@@ -38,7 +38,7 @@ def try_test(results_filename, s, dataset, metric_names, mls, n_repetitions, att
             print("failed test nr ",i+1, dataset, s)
             #raise e
             
-def get_vaemask_config(epochs, latent_dim, lr, vae_layers, loss, loss_params, mask_value = None):
+def _get_vaemask_config(epochs, latent_dim, lr, vae_layers, loss, loss_params, mask_value = None):
     config = VAEMaskConfig(epochs=epochs, latent_dim=latent_dim, lr=lr, losses_used=loss, vae_layers=vae_layers, mask_values=mask_value)
     config.config_loss(config.KL_DIV_LOSS, weight = loss_params["w_kl_div"])
     config.config_loss(config.RECON_LOSS, weight = loss_params["w_recon"])
@@ -52,10 +52,10 @@ def get_vaemask_config(epochs, latent_dim, lr, vae_layers, loss, loss_params, ma
     return config
 
 
-def ml_configs(ml_model, fyp_losses, attrs, epochs, latent_dim, lr, vae_layers, loss_params, baselines=None):
+def _ml_configs(ml_model, fyp_losses, attrs, epochs, latent_dim, lr, vae_layers, loss_params, baselines=None):
     fyp  = [
         TestConfig(Tester.FYP_VAE, ml_model, sensitive_attr=attrs, other={"c": comment, VAEMaskModel.VAE_MASK_CONFIG:  
-            get_vaemask_config(epochs, latent_dim, lr, vae_layers, l, loss_params)}) for l in fyp_losses
+            _get_vaemask_config(epochs, latent_dim, lr, vae_layers, l, loss_params)}) for l in fyp_losses
     ]
     #fyp = []
     available_base =  [  
@@ -72,23 +72,23 @@ def ml_configs(ml_model, fyp_losses, attrs, epochs, latent_dim, lr, vae_layers, 
     return bases + fyp
     
             
-def run_all_losses(dataset, epochs, latent_dim, lr, vae_layers, loss_params):
+def _run_all_losses(dataset, epochs, latent_dim, lr, vae_layers, loss_params):
     
     for s in [["race","sex"]]: #  ["sex","race"],["race"],["sex"]
         if dataset==Tester.GERMAN_D and "race" in s:
             continue
         # check German only run with sex
         
-        mls = ( ml_configs(Model.LG_R, losses, s, epochs, latent_dim, lr, vae_layers, loss_params
-            ) + ml_configs(Model.SV_C, losses, s, epochs, latent_dim, lr, vae_layers, loss_params
-            ) + ml_configs(Model.NB_C, losses, s, epochs, latent_dim, lr, vae_layers, loss_params
-            ) + ml_configs(Model.RF_C, losses, s, epochs, latent_dim, lr, vae_layers, loss_params
-            ) + ml_configs(Model.DT_R, losses, s, epochs, latent_dim, lr, vae_layers, loss_params
-            ) + ml_configs(Model.EN_R, losses, s, epochs, latent_dim, lr, vae_layers, loss_params
-            ) + ml_configs(Model.NN_C, losses, s, epochs, latent_dim, lr, vae_layers, loss_params)) # TODO: need to add input dim
+        mls = ( _ml_configs(Model.LG_R, losses, s, epochs, latent_dim, lr, vae_layers, loss_params
+            ) + _ml_configs(Model.SV_C, losses, s, epochs, latent_dim, lr, vae_layers, loss_params
+            ) + _ml_configs(Model.NB_C, losses, s, epochs, latent_dim, lr, vae_layers, loss_params
+            ) + _ml_configs(Model.RF_C, losses, s, epochs, latent_dim, lr, vae_layers, loss_params
+            ) + _ml_configs(Model.DT_R, losses, s, epochs, latent_dim, lr, vae_layers, loss_params
+            ) + _ml_configs(Model.EN_R, losses, s, epochs, latent_dim, lr, vae_layers, loss_params
+            ) + _ml_configs(Model.NN_C, losses, s, epochs, latent_dim, lr, vae_layers, loss_params)) # TODO: need to add input dim
                 
         #mls = ml_configs(Model.NN_C, losses, s, epochs, latent_dim, lr, vae_layers, loss_params)
-        try_test(results_filename, s, dataset, metric_names, mls, n_repetitions)
+        _try_test(results_filename, s, dataset, metric_names, mls, n_repetitions)
         
 
 
@@ -125,4 +125,4 @@ for e in range(10):
         print('~'*1000)
         print(e+5, " iteration of 4x dataset:", dataset)
         print('~'*100)
-        run_all_losses(dataset, default_values[0], default_values[1], default_values[2], default_values[3], loss_params)
+        _run_all_losses(dataset, default_values[0], default_values[1], default_values[2], default_values[3], loss_params)

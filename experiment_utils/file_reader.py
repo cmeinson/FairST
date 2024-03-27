@@ -50,9 +50,10 @@ class ResultsReader:
                 print(f"Error: Unable to open '{file_path}'", e)
 
         common_columns = set(dfs[0].columns)
-        for df in dfs[1:]:
-            common_columns &= set(df.columns)
-            
+        if len(df)>1:
+            for df in dfs[1:]:
+                common_columns &= set(df.columns)
+                
         common_columns = [val for val in dfs[0].columns if val in common_columns] # keeping the og order
 
         # Select only the common columns from each DataFrame
