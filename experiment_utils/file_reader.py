@@ -4,7 +4,6 @@ import numpy as np
 from .other_col_reader import OtherColReader
 
 
-
 class ResultsReader:
     # TODO: allor reading of multiple files
     DROP_COLUMNS = ["time", 'bias mit ML method', "reps"]
@@ -27,8 +26,7 @@ class ResultsReader:
             file_paths = [file_paths]
         self.file_paths = file_paths
         self.df = None
-        self.metrics = []
-        
+        self.metrics = []        
         
         self.read_csv()
         self.filters = {}
@@ -37,6 +35,7 @@ class ResultsReader:
         ocr = OtherColReader(self.df)
         self.add_column = ocr.add_col
         self.relative_metrics_filter = lambda df: df
+        
 
     def read_csv(self):
         dfs = []
@@ -76,19 +75,31 @@ class ResultsReader:
             
     def _proccess_df(self, df):
         # remove time and reps columns, keep only reps = 1
-        df = df[df[self.REPS] == 1]
+        if self.REPS in df.columns:
+            df = df[df[self.REPS] == 1]
         var_cols = df.filter(like=self.VAR_PREFIX, axis=1).columns.tolist()
         cols_to_drop = var_cols + self.DROP_COLUMNS
+        
+        cols_to_drop = set(cols_to_drop).intersection(df.columns) # only if the columns are still there
         df = df.drop(columns=cols_to_drop, axis=1)
-    
-        #df[self.ID] = np.floor(df[self.ID]).astype(int)
-        df[self.ID] = df[self.ID]
 
+        df = self._add_new_metrics(df)
+        
         non_metric_cols = self.FILTERABLE + [self.ID]
-        
         self.metrics = [col for col in df.columns if col not in non_metric_cols]
-        
         return df
+    
+    def _add_new_metrics(self, df):
+        df['TPR'] = df['precision'].mul(df['mean_pred'])
+        df['FPR'] = df['mean_pred'].mul(1 - df['precision'])
+        df['FNR'] = df['TPR'].mul(1/df['recall'] - 1)
+        df['TNR'] = 1 - df['TPR'] - df['FPR'] - df['FNR']
+        
+        tp, fp, fn, tn = df['TPR'], df['FPR'], df['FNR'], df['TNR']
+        denominator = np.sqrt((tp + fp) * (tp + fn) * (tn + fp) * (tn + fn))
+        df['MCC'] = ((tp * tn) - (fp * fn)) / denominator
+        return df
+        
 
     def change_other_to_losses(self):
         # edit the "other" col values to have just the lossed used"
@@ -200,7 +211,7 @@ class ResultsReader:
 
         relative_df = self.relative_metrics_filter(df)
         # NOTE: this s a hack:
-        relative_df[OtherColReader.ACC_SF_TO] = (relative_df["accuracy"]+0.3)*(0.1-relative_df["[SF] Statistical Parity Subgroup Fairness"]*2)
+        #relative_df[OtherColReader.ACC_SF_TO] = (relative_df["accuracy"]+0.3)*(0.1-relative_df["[SF] Statistical Parity Subgroup Fairness"]*2)
         return relative_df
     
     def _get_mean_metrics(self, df):
