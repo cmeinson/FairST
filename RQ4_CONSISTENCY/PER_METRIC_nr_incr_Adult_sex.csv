@@ -1,0 +1,10 @@
+bias mitigation,other,f1score,sex|[SPD] Statistical Parity Difference,sex|[A_AOD] Absolute Average Odds Difference,sex|[A_EOD] Absolute Equal Opportunity Difference,sex|[A_SPD] Absolute Statistical Parity Difference,sex|[DI_FM] Disparate Impact the way it was implemented in FairMask,sex|[SF] Statistical Parity Subgroup Fairness for One Attribute,sex|[DF] Differential Fairness for One Attribute,[SF] Statistical Parity Subgroup Fairness,[SF] Statistical Parity Subgroup Fairness if 0 was the positive label,[DF] Differential Fairness,[DF] Differential Fairness if 0 was the positive label,MCC
+FYP VAE,"'Sensitive KL loss', 'Latent sens ADV loss', 'Reconstruction loss', 'KL divergence loss'",0,240,60,118,0,0,0,0,0,0,0,0,0
+FYP VAE,"'Sensitive KL loss', 'Pos Y vec loss', 'Reconstruction loss', 'KL divergence loss'",0,240,47,86,0,0,0,0,0,0,0,0,0
+FYP VAE,"'Sensitive KL loss', 'Reconstruction loss', 'KL divergence loss'",0,240,51,89,0,0,0,0,0,0,0,0,0
+FairBalance Bias Mitigation,{},136,86,93,77,154,45,154,45,154,154,45,191,58
+FairMask Bias Mitigation,{},109,132,113,113,108,97,108,97,108,108,97,109,104
+LFR,{'c': 'LFR'},39,186,86,84,54,63,54,63,54,54,63,49,35
+No Bias Mitigation,{},240,240,240,240,240,240,240,240,240,240,240,240,240
+Reweighing Bias Mitigation,{},44,240,28,65,0,1,0,1,0,0,1,2,58
+,,240,240,240,240,240,240,240,240,240,240,240,240,240

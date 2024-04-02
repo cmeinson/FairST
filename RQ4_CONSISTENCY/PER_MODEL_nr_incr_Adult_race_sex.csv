@@ -1,0 +1,5 @@
+bias mitigation,other,LogisticRegression
+FairBalance Bias Mitigation,{},1
+FairMask Bias Mitigation,{},0
+No Bias Mitigation,{},1
+Reweighing Bias Mitigation,{},0
