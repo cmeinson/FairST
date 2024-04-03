@@ -14,7 +14,7 @@ from .ml_models import (
     LFRModel,
     EqOModel
 )
-from .data_classes import AdultData, CompasData, GermanData, MEPSData, DummyData, Data
+from .data_classes import AdultData, CompasData, GermanData, MEPSData, DummyData, Data, DefaultData
 from .metrics import Metrics, MetricException
 from .test_config import TestConfig
 from .result_writer import ResultsWriter
@@ -27,6 +27,7 @@ class Tester:
     ADULT_D = "Adult Dataset"
     COMPAS_D = "Compas Dataset"
     MEPS_D = "MEPS Dataset"
+    DEFAULT_D = "Default Dataset"
     GERMAN_D = "German Dataset"
     DUMMY_D = "Dummy Dataset"
 
@@ -163,6 +164,8 @@ class Tester:
             data = CompasData(preproc)
         elif self._dataset_name == self.MEPS_D:
             data = MEPSData(preproc)
+        elif self._dataset_name == self.DEFAULT_D:
+            data = DefaultData(preproc)
         elif self._dataset_name == self.GERMAN_D:
             data = GermanData(preproc)
         elif self._dataset_name == self.DUMMY_D:

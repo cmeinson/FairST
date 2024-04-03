@@ -75,9 +75,9 @@ def ml_configs(ml_model, fyp_losses, attrs, epochs, latent_dim, lr, vae_layers, 
 def run_all_losses(dataset, epochs, latent_dim, lr, vae_layers, loss_params, results_filename, models = default_models, n_reps = 2, metrics = Metrics.get_all_names()):
     
     for s in [["race","sex"]]: #  ["sex","race"],["race"],["sex"]
-        if dataset==Tester.GERMAN_D and "race" in s:
+        if dataset in [Tester.GERMAN_D, Tester.DEFAULT_D] and "race" in s:
             continue
-        # check German only run with sex
+        # check German and default credit only run with sex
         
         
         mls = list(itertools.chain.from_iterable([
