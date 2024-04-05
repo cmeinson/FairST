@@ -5,11 +5,22 @@ import torch
 import sys
 
 n_repetitions = 4
-results_filename = "defualt_"
+results_filename = "MAIN_defualt_"
 comment = "FYP"
 
-losses = [ [VAEMaskConfig.KL_SENSITIVE_LOSS, VAEMaskConfig.POS_VECTOR_LOSS,        VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS]]
-
+losses = [
+        [VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS], 
+        [VAEMaskConfig.POS_VECTOR_LOSS,         VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS], 
+        [VAEMaskConfig.KL_SENSITIVE_LOSS,         VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS], 
+        [VAEMaskConfig.LATENT_S_ADV_LOSS,         VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS], 
+        [VAEMaskConfig.FLIPPED_ADV_LOSS,         VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS], 
+        [VAEMaskConfig.LATENT_S_ADV_LOSS, VAEMaskConfig.POS_VECTOR_LOSS,        VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS], 
+        [VAEMaskConfig.KL_SENSITIVE_LOSS, VAEMaskConfig.POS_VECTOR_LOSS,        VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS],
+        [VAEMaskConfig.FLIPPED_ADV_LOSS,  VAEMaskConfig.POS_VECTOR_LOSS,        VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS], 
+        [VAEMaskConfig.FLIPPED_ADV_LOSS,  VAEMaskConfig.KL_SENSITIVE_LOSS,        VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS], 
+        [VAEMaskConfig.FLIPPED_ADV_LOSS,  VAEMaskConfig.LATENT_S_ADV_LOSS,        VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS], 
+        [VAEMaskConfig.KL_SENSITIVE_LOSS,  VAEMaskConfig.LATENT_S_ADV_LOSS,        VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS], 
+    ]
 
 # ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -51,7 +62,7 @@ def _ml_configs(ml_model, fyp_losses, attrs, epochs, latent_dim, lr, vae_layers,
         TestConfig(Tester.FAIRMASK, ml_model, Model.DT_R, sensitive_attr=attrs),
         TestConfig(Tester.FAIRBALANCE, ml_model, sensitive_attr=attrs),
         TestConfig(Tester.REWEIGHING, ml_model, sensitive_attr=attrs),
-        #TestConfig(Tester.LFR, ml_model, other={"c":"LFR"}, sensitive_attr = attrs), #base_model_bias_mit=Tester.REWEIGHING
+        TestConfig(Tester.LFR, ml_model, other={"c":"LFR"}, sensitive_attr = attrs), #base_model_bias_mit=Tester.REWEIGHING
     ] 
     if baselines==None:
         return available_base + fyp
@@ -68,9 +79,13 @@ def _run_all_losses(dataset, epochs, latent_dim, lr, vae_layers, loss_params):
         # check German only run with sex
         
         mls = ( _ml_configs(Model.LG_R, losses, s, epochs, latent_dim, lr, vae_layers, loss_params
+            ) + _ml_configs(Model.SV_C, losses, s, epochs, latent_dim, lr, vae_layers, loss_params
+            ) + _ml_configs(Model.NB_C, losses, s, epochs, latent_dim, lr, vae_layers, loss_params
+            ) + _ml_configs(Model.RF_C, losses, s, epochs, latent_dim, lr, vae_layers, loss_params
+            ) + _ml_configs(Model.DT_R, losses, s, epochs, latent_dim, lr, vae_layers, loss_params
+            #) + _ml_configs(Model.EN_R, losses, s, epochs, latent_dim, lr, vae_layers, loss_params
             ) + _ml_configs(Model.NN_C, losses, s, epochs, latent_dim, lr, vae_layers, loss_params)) # TODO: need to add input dim
-                
-        #mls = ml_configs(Model.NN_C, losses, s, epochs, latent_dim, lr, vae_layers, loss_params)
+                      
         _try_test(results_filename, s, dataset, metric_names, mls, n_repetitions)
         
 
@@ -105,6 +120,6 @@ loss_params = {
 for e in range(10):
     for dataset, default_values in zip(datasets, defaults):
         print('~'*1000)
-        print(e+5, " iteration of 4x dataset:", dataset)
+        print(e, " iteration of 4x dataset:", dataset)
         print('~'*100)
         _run_all_losses(dataset, default_values[0], default_values[1], default_values[2], default_values[3], loss_params)
