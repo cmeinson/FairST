@@ -7,6 +7,7 @@ from src.ml_models.FYP_VAE.configs import VAEMaskConfig as vae_config  # has los
 from src.tester import Tester  # has bias mits
 from .other_col_reader import get_config
 import numpy as np
+import seaborn as sns   
 
 
 class ResultsGrapher:
@@ -16,10 +17,14 @@ class ResultsGrapher:
     STYLE_IQR = "style: iqr over each label"
     def __init__(self, reader: ResultsReader) -> None:
         self.reader = reader
-        self.cmap = get_cmap("tab10")
+        self.cmap = sns.color_palette("flare",11) #get_cmap("tab10")
+        self.cmap_bl = sns.color_palette("viridis",6) #get_cmap("tab10")
         self.show_legend = True
         self.use_comment_as_label = False
         self.separate_ml_models = True
+        self.show_plots = True
+        self.ax = None
+        self.VERBOSE = True
 
     def plot_metrics_vs_metric(
         self,
@@ -47,7 +52,7 @@ class ResultsGrapher:
             plot_mvm_f = self._plot_metric_vs_metric_mean_each_loss
 
         plot_f = lambda p, df, y_m: plot_mvm_f(p, df, y_m, x_metric=metric)
-        self._plot_all_filter_values(metrics, plot_f, relative, mean)
+        return self._plot_all_filter_values(metrics, plot_f, relative, mean)
 
     def plot_bias_metrics_vs_metric(self, metric="accuracy", relative=True, mean=True):
         metrics = [m for m in self.reader.metrics if "[" in m]
@@ -55,7 +60,7 @@ class ResultsGrapher:
         plot_f = lambda p, df, y_m: self._plot_metric_vs_metric(
             p, df, y_m, x_metric=metric
         )
-        self._plot_all_filter_values(metrics, plot_f, relative, mean)
+        return self._plot_all_filter_values(metrics, plot_f, relative, mean)
 
     def _row_label_generator(self, row):
         if row[ResultsReader.BIAS_MIT] != Tester.FYP_VAE:
@@ -64,7 +69,7 @@ class ResultsGrapher:
                 Tester.FAIRMASK: "B:FM",
                 Tester.FAIRBALANCE: "B:FB",
                 Tester.REWEIGHING: "B:RW",
-                Tester.LFR: "LFR",
+                Tester.LFR: "B:LFR",
                 Tester.EQODDS: "EqO",
                 Tester.EQODDS_ALT: "EqO_ALT",
             }
@@ -90,23 +95,48 @@ class ResultsGrapher:
 
     def get_color(self, label):  # 5
         colors = {
-            "LF": 2,
-            "LP": 9,
+            "K": 6,
+            "KP": 10,
             "LK": 3,
-            "FK": 4,
+            
+            "LF": 1,
+            "LP": 4,
+            "FK": 2,
             "FP": 8,
-            "KP": 6,
-            "VAE": 7,
-            "P": 1,
-            "L": 5,
-            "K": 5,
-            "F": 5,
+            "P": 5,
+            "L": 7,
+            "F": 9,
+            
+            "VAE": 0
         }
-        if label not in colors:
-            return self.cmap(7)
-        return self.cmap(colors[label])
+        colors_bl = {            
+            "B:FM":4,
+            "B:FB":5,
+            "B:RW":2,
+            "B:LFR":3
+        }
+        if label in colors:
+            return self.cmap[colors[label]]
+        
+        if label in colors_bl:
+            return self.cmap_bl[colors_bl[label]]
+        
+        return self.cmap_bl[1]
 
-    def _get_legend_text(self, other):
+    def _get_legend_text(self, other, point_label = None):
+        if point_label is not None:
+            labels = {                       
+                "B:FM":'FairMask',
+                "B:FB":'FairBalance',
+                "B:RW":'Reweighing',
+                "B:LFR":'LFR',
+                'BASE':'Base Model'
+            }
+            if point_label in labels:
+                return labels[point_label]
+            
+            return 'FVAEM loss '+point_label
+        
         if not self.use_comment_as_label:
             return other[:50]
 
@@ -129,17 +159,20 @@ class ResultsGrapher:
                     ha="right",
                     va="bottom",
                     color=color,
+                    alpha=0.9
                 )
-            cur_plt.scatter(
-                df[df[label_col] == label][x_metric],
-                df[df[label_col] == label][y_metric],
-                label=self._get_legend_text(label),
-                color=color,
-            )
+                cur_plt.scatter(
+                    row[x_metric],
+                    row[y_metric],
+                    label=self._get_legend_text(label, point_label),
+                    color=color,
+                    alpha=0.8,
+                )
 
-        plt.xlabel(x_metric)
-        plt.xticks(rotation=45, ha="right")
-        plt.ylabel(y_metric.split("]")[0] + "]")
+        
+        cur_plt.tick_params(axis='x', labelrotation=45)
+        cur_plt.set_xlabel(x_metric)
+        cur_plt.set_ylabel(y_metric.split("]")[0] + "]")
 
     def _plot_metric_vs_metric_mean_each_loss(self, cur_plt, df, y_metric, x_metric):
         label_col = ResultsReader.OTHER
@@ -193,9 +226,10 @@ class ResultsGrapher:
                 #boxplots.append(y_vals)
         #plt.boxplot(boxplots)
 
-        plt.xlabel(x_metric)
-        plt.xticks(rotation=45, ha="right")
-        plt.ylabel(y_metric.split("]")[0] + "]")
+        cur_plt.tick_params(axis='x', labelrotation=45)
+        cur_plt.set_xlabel(x_metric)
+        cur_plt.set_ylabel(y_metric.split("]")[0] + "]")
+
         
     def _plot_metric_vs_metric_iqr(self, cur_plt, df, y_metric, x_metric):
         label_col = ResultsReader.OTHER
@@ -232,11 +266,12 @@ class ResultsGrapher:
                 color=color,
             )
             boxplots.append(y_vals)
-        plt.boxplot(boxplots,  labels=list(points_y.keys()), positions=range(len(boxplots)))
+        cur_plt.boxplot(boxplots,  labels=list(points_y.keys()), positions=range(len(boxplots)))
 
-        plt.xlabel(x_metric)
-        plt.xticks(rotation=45, ha="right")
-        plt.ylabel(y_metric.split("]")[0] + "]")
+        cur_plt.tick_params(axis='x', labelrotation=45)
+        cur_plt.set_xlabel(x_metric)
+        cur_plt.set_ylabel(y_metric.split("]")[0] + "]")
+
 
     def _plot_metric_vs_metric_mean_each_label(self, cur_plt, df, y_metric, x_metric):
         label_col = ResultsReader.OTHER
@@ -306,26 +341,35 @@ class ResultsGrapher:
                 color=color,
             )
 
-        plt.xlabel(x_metric)
-        plt.xticks(rotation=45, ha="right")
-        plt.ylabel(y_metric.split("]")[0] + "]")
+        cur_plt.tick_params(axis='x', labelrotation=45)
+        cur_plt.set_xlabel(x_metric)
+        cur_plt.set_ylabel(y_metric.split("]")[0] + "]")
+
 
     def _plot_each_metric(self, title, metrics, plot_f, relative, mean):
         df = self.reader.get_filtered_metrics(mean=mean, relative=relative)
 
-        if len(df.index) == 0:
+        if len(df.index) == 0 and self.VERBOSE:
             print("no rows found")
             return
 
         for y_col in metrics:
-            plt.figure(figsize=(8, 6))
-            plot_f(plt, df, y_col)
-            plt.title(title)
+            # HERE!!!
+            if self.show_plots:
+                F, ax = plt.subplots(1, 1, figsize=(10, 8))
+            else:   
+                ax = self.ax
+                ax.clear()
+                
+            plot_f(ax, df, y_col)
+            ax.set_title(title)
             if self.show_legend:
-                plt.legend()
-            plt.grid(True)
-            plt.show()
-
+                ax.legend()
+            ax.grid(True)
+            if self.show_plots:
+                plt.show()
+            
+            
     def _plot_all_filter_values(self, metrics, plot_f, relative, mean):
         ml_model_values = self.reader.get_all_column_values(self.reader.ML)
         if not self.separate_ml_models:
@@ -345,6 +389,8 @@ class ResultsGrapher:
                     if len(ml)>1:
                         ml_title = [n[0] for n in ml]
                     title = f"{ml_title} on {dataset} with protected {attrs}"
-                    print("_" * 100)
-                    print(dataset, ",", ml, attrs)
+                    if self.VERBOSE:
+                        print("_" * 100)
+                        print(dataset, ",", ml, attrs)
                     self._plot_each_metric(title, metrics, plot_f, relative, mean)
+                    
