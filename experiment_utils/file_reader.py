@@ -90,12 +90,12 @@ class ResultsReader:
         return df
     
     def _add_new_metrics(self, df):
-        df['TPR'] = df['precision'].mul(df['mean_pred'])
-        df['FPR'] = df['mean_pred'].mul(1 - df['precision'])
-        df['FNR'] = df['TPR'].mul(1/df['recall'] - 1)
-        df['TNR'] = 1 - df['TPR'] - df['FPR'] - df['FNR']
+        df['TP'] = df['precision'].mul(df['mean_pred'])
+        df['FP'] = df['mean_pred'].mul(1 - df['precision'])
+        df['FN'] = df['TP'].mul(1/df['recall'] - 1)
+        df['TN'] = 1 - df['TP'] - df['FP'] - df['FN']
         
-        tp, fp, fn, tn = df['TPR'], df['FPR'], df['FNR'], df['TNR']
+        tp, fp, fn, tn = df['TP'], df['FP'], df['FN'], df['TN']
         denominator = np.sqrt((tp + fp) * (tp + fn) * (tn + fp) * (tn + fn))
         df['MCC'] = ((tp * tn) - (fp * fn)) / denominator
         return df

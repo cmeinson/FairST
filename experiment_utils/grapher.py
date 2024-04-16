@@ -97,14 +97,14 @@ class ResultsGrapher:
         colors = {
             "K": 6,
             "KP": 10,
-            "LK": 3,
             
             "LF": 1,
-            "LP": 4,
             "FK": 2,
-            "FP": 8,
+            "LK": 3,
+            "LP": 4,
             "P": 5,
             "L": 7,
+            "FP": 8,
             "F": 9,
             
             "VAE": 0
@@ -171,6 +171,7 @@ class ResultsGrapher:
 
         
         cur_plt.tick_params(axis='x', labelrotation=45)
+        cur_plt.tick_params(axis='y', labelrotation=45)
         cur_plt.set_xlabel(x_metric)
         cur_plt.set_ylabel(y_metric.split("]")[0] + "]")
 

@@ -1,10 +1,9 @@
-bias mitigation,other,f1score,race|[SPD] Statistical Parity Difference,race|[A_AOD] Absolute Average Odds Difference,race|[A_EOD] Absolute Equal Opportunity Difference,race|[A_SPD] Absolute Statistical Parity Difference,race|[DI_FM] Disparate Impact the way it was implemented in FairMask,race|[SF] Statistical Parity Subgroup Fairness for One Attribute,race|[DF] Differential Fairness for One Attribute,[SF] Statistical Parity Subgroup Fairness,[SF] Statistical Parity Subgroup Fairness if 0 was the positive label,[DF] Differential Fairness,[DF] Differential Fairness if 0 was the positive label,MCC
-FYP VAE,"'Sensitive KL loss', 'Latent sens ADV loss', 'Reconstruction loss', 'KL divergence loss'",121,234,13,24,10,10,10,10,10,10,10,10,95
-FYP VAE,"'Sensitive KL loss', 'Pos Y vec loss', 'Reconstruction loss', 'KL divergence loss'",119,234,14,28,9,9,9,9,9,9,9,10,96
-FYP VAE,"'Sensitive KL loss', 'Reconstruction loss', 'KL divergence loss'",114,236,12,22,7,7,7,7,7,7,7,8,83
-FairBalance Bias Mitigation,{},46,203,37,62,37,40,37,40,37,37,40,30,96
-FairMask Bias Mitigation,{},114,101,137,136,139,140,139,140,139,139,140,136,115
-LFR,{'c': 'LFR'},88,226,15,35,15,15,15,15,15,15,15,15,117
-No Bias Mitigation,{},240,240,240,240,240,240,240,240,240,240,240,240,240
-Reweighing Bias Mitigation,{},87,221,20,33,19,20,19,19,19,19,19,21,91
-,,240,240,240,240,240,240,240,240,240,240,240,240,240
+bias mitigation,other,accuracy,precision,recall,f1score,mean_pred,race|unprivileged mean_pred,race|privileged mean_pred,race|unprivileged acc,race|privileged acc,race|[AOD] Average Odds Difference,race|[EOD] Equal Opportunity Difference,race|[SPD] Statistical Parity Difference,race|[ERD] Error Rate Difference,race|[A_AOD] Absolute Average Odds Difference,race|[A_EOD] Absolute Equal Opportunity Difference,race|[A_SPD] Absolute Statistical Parity Difference,race|[DI] Disparate Impact,race|[DI_FM] Disparate Impact the way it was implemented in FairMask,race|[FR] Flip Rate,race|[SF] Statistical Parity Subgroup Fairness for One Attribute,race|[DF] Differential Fairness for One Attribute,[SF] Statistical Parity Subgroup Fairness,[SF] Statistical Parity Subgroup Fairness if 0 was the positive label,[DF] Differential Fairness,[DF] Differential Fairness if 0 was the positive label,[MEOD] M Equal Opportunity Difference,[MAOD] M Average Odds Difference,TP,FP,FN,TN,MCC
+FYP VAE,"'Sensitive KL loss', 'Pos Y vec loss', 'Reconstruction loss', 'KL divergence loss'",12,18,20,15,20,29,3,14,22,40,40,40,19,0,1,0,40,0,40,0,0,0,0,0,0,1,0,19,22,20,18,12
+FYP VAE,"'Sensitive KL loss', 'Reconstruction loss', 'KL divergence loss'",12,17,21,16,21,31,4,13,19,40,40,40,22,0,1,0,40,0,40,0,0,0,0,0,0,1,0,20,22,19,19,11
+FairBalance Bias Mitigation,{},0,2,3,1,17,27,4,1,0,40,37,40,29,0,3,0,39,1,40,0,1,0,0,1,0,3,0,3,27,37,13,0
+FairMask Bias Mitigation,{},18,21,17,17,17,18,19,19,23,22,17,20,15,18,23,20,18,22,0,20,22,20,20,22,17,23,18,16,17,23,23,20
+LFR,{'c': 'LFR'},6,10,15,7,16,28,5,10,9,40,40,40,24,0,1,0,40,0,40,0,0,0,0,0,0,1,0,15,24,25,16,7
+No Bias Mitigation,{},40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40
+Reweighing Bias Mitigation,{},0,0,12,2,21,31,9,1,0,40,40,40,25,0,1,0,40,0,40,0,0,0,0,0,0,1,0,10,32,28,8,0
+,,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40
