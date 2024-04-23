@@ -83,7 +83,7 @@ class LatentDiscrLoss(LossModel):
     not going to use subgroup as the goal is for none of them to be predictible.
     NOTE: in the future could try evaluating it based on subgroup somehow similar to DF
     """      
-    # TODO: wha if instead of training a new descriminator for each goup we just train a multiobjectiive one
+    # TODO: what if instead of training a new descriminator for each goup we just train a multiobjectiive one
     def _first_init(self):
         self.discrs = []
         self.optims = []

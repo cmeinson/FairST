@@ -41,11 +41,11 @@ class Metrics:
     FR = "[FR] Flip Rate"
 
     SF = "[SF] Statistical Parity Subgroup Fairness"
-    SF_INV = "[SF] Statistical Parity Subgroup Fairness if 0 was the positive label"
+    #SF_INV = "[SF] Statistical Parity Subgroup Fairness if 0 was the positive label" # same value
     ONE_SF = "[SF] Statistical Parity Subgroup Fairness for One Attribute"
 
     DF = "[DF] Differential Fairness"
-    DF_INV = "[DF] Differential Fairness if 0 was the positive label"
+    # DF_INV = "[DF] Differential Fairness if 0 was the positive label" was incorrectly implemented in the previous version. actually DF must be calcualted as max of this and DF metric
     ONE_DF = "[DF] Differential Fairness for One Attribute"
 
     M_EOD = "[MEOD] M Equal Opportunity Difference"
@@ -77,7 +77,7 @@ class Metrics:
     @classmethod
     def get_subgroup_dependant(cls):
         # metrics that need a list of attributes as input to create subgroups
-        return [Metrics.SF, Metrics.SF_INV, Metrics.DF, Metrics.DF_INV, Metrics.M_EOD, Metrics.M_AOD]
+        return [Metrics.SF,  Metrics.DF, Metrics.M_EOD, Metrics.M_AOD]
 
     @classmethod
     def get_attribute_dependant(cls):
@@ -114,11 +114,9 @@ class Metrics:
             self.M_AOD: self.maod,
             self.FR:    self.fr,
             self.SF:    self.sf,
-            self.SF_INV:lambda a: self.sf(a, outcome='n'),
             self.ONE_SF:lambda a: self.sf([a]),
-            self.DF:    self.df,
-            self.DF_INV:lambda a: self.df(a, outcome='n'),
-            self.ONE_DF:lambda a: self.df([a]),
+            self.DF:    lambda a: max(self.df(a, outcome='n'),  self.df(a)),
+            self.ONE_DF:lambda a: max(self.df([a], outcome='n'),  self.df([a]))
         }
 
         if metric_name in metrics_dict:
@@ -247,7 +245,7 @@ class Metrics:
             return 1
         elif prob_sg1==0 or prob_sg2==0:   
             if NO_EXCEPTIONS:
-                return - 10**3
+                return - 10**3 # I messed up this should have been a positive number. this still caused arrer. but this means no such case affected the metrics
             raise MetricException("DF fail")
         return prob_sg1 / prob_sg2
 

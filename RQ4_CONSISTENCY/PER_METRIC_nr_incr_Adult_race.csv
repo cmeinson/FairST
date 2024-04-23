@@ -1,9 +1,0 @@
-bias mitigation,other,accuracy,precision,recall,f1score,mean_pred,race|unprivileged mean_pred,race|privileged mean_pred,race|unprivileged acc,race|privileged acc,race|[AOD] Average Odds Difference,race|[EOD] Equal Opportunity Difference,race|[SPD] Statistical Parity Difference,race|[ERD] Error Rate Difference,race|[A_AOD] Absolute Average Odds Difference,race|[A_EOD] Absolute Equal Opportunity Difference,race|[A_SPD] Absolute Statistical Parity Difference,race|[DI] Disparate Impact,race|[DI_FM] Disparate Impact the way it was implemented in FairMask,race|[FR] Flip Rate,race|[SF] Statistical Parity Subgroup Fairness for One Attribute,race|[DF] Differential Fairness for One Attribute,[SF] Statistical Parity Subgroup Fairness,[SF] Statistical Parity Subgroup Fairness if 0 was the positive label,[DF] Differential Fairness,[DF] Differential Fairness if 0 was the positive label,[MEOD] M Equal Opportunity Difference,[MAOD] M Average Odds Difference,TP,FP,FN,TN,MCC
-FYP VAE,"'Sensitive KL loss', 'Pos Y vec loss', 'Reconstruction loss', 'KL divergence loss'",0,6,9,2,19,37,17,2,0,40,39,39,15,6,9,1,40,0,34,1,0,1,1,0,1,9,6,8,25,31,15,0
-FYP VAE,"'Sensitive KL loss', 'Reconstruction loss', 'KL divergence loss'",0,4,10,0,17,36,13,3,0,37,35,38,14,9,12,2,40,0,32,2,0,2,2,0,2,12,9,10,26,30,14,0
-FairBalance Bias Mitigation,{},0,0,40,11,40,40,40,0,0,13,16,5,13,27,23,35,35,5,40,35,5,35,35,5,37,23,27,40,40,0,0,0
-FairMask Bias Mitigation,{},22,21,17,17,17,27,16,22,22,34,35,31,16,10,11,9,39,1,0,9,1,9,9,1,10,11,10,17,18,23,22,15
-LFR,{'c': 'LFR'},7,13,13,11,17,37,16,9,9,36,35,37,14,8,10,3,40,0,37,3,0,3,3,0,3,10,8,13,24,27,16,8
-No Bias Mitigation,{},40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40
-Reweighing Bias Mitigation,{},0,2,19,6,28,38,27,0,1,35,31,39,8,8,11,1,40,0,40,1,0,1,1,0,5,11,8,18,34,21,6,1
-,,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40

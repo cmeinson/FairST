@@ -21,8 +21,10 @@ def plot_single(grapher, y_metric, x_metric):
 
     all_metrics = grapher.reader.metrics
     metrics_to_display = [m for m in all_metrics if metric_has_substring(m, [y_metric])]
-    print("metrics to display:", metrics_to_display, x_metric)
-    grapher.plot_metrics_vs_metric(mean=True, relative=True, metric=x_metric, metrics = metrics_to_display, style=grapher.STYLE_BASE)
+    
+    x_metrics_to_display = [m for m in all_metrics if metric_has_substring(m, [x_metric])]
+    print("metrics to display:", metrics_to_display, x_metrics_to_display)
+    grapher.plot_metrics_vs_metric(mean=True, relative=True, metric=x_metrics_to_display[0], metrics = metrics_to_display, style=grapher.STYLE_BASE)
     
     grapher.ax.set_ylabel(y_metric)
     grapher.ax.set_xlabel(x_metric)

@@ -83,11 +83,27 @@ class ResultsReader:
         cols_to_drop = set(cols_to_drop).intersection(df.columns) # only if the columns are still there
         df = df.drop(columns=cols_to_drop, axis=1)
 
+        df = self._fix_metrics(df)
         df = self._add_new_metrics(df)
         
         non_metric_cols = self.FILTERABLE + [self.ID]
         self.metrics = [col for col in df.columns if col not in non_metric_cols]
         return df
+    
+    def _fix_metrics(self, df):
+        # eq to the og SF
+        SF_INV = "[SF] Statistical Parity Subgroup Fairness if 0 was the positive label" # same value
+
+        # was incorrectly implemented first
+        DF = "[DF] Differential Fairness"
+        DF_INV = "[DF] Differential Fairness if 0 was the positive label"
+        
+        if DF_INV not in df.columns:
+            return df
+                
+        df[DF] = df[[DF, DF_INV]].max(axis=1)
+        
+        return df.drop([SF_INV, DF_INV], axis = 1)
     
     def _add_new_metrics(self, df):
         df['TP'] = df['precision'].mul(df['mean_pred'])
