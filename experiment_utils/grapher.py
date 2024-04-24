@@ -90,7 +90,9 @@ class ResultsGrapher:
             if loss in losses_used:
                 name += short
         if name == "":
-            return "VAE"
+            if vae_config.RECON_LOSS in losses_used:
+                return "VAE"
+            return "MASK"
         return name
 
     def get_color(self, label):  # 5
@@ -109,7 +111,8 @@ class ResultsGrapher:
             
             "VAE": 0
         }
-        colors_bl = {            
+        colors_bl = { 
+            "MASK":0,          
             "B:FM":4,
             "B:FB":5,
             "B:RW":2,
@@ -130,7 +133,8 @@ class ResultsGrapher:
                 "B:FB":'FairBalance',
                 "B:RW":'Reweighing',
                 "B:LFR":'LFR',
-                'BASE':'Base Model'
+                'BASE':'Base Model',
+                'MASK':'Simple Attr Mask',
             }
             if point_label in labels:
                 return labels[point_label]

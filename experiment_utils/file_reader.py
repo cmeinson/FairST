@@ -44,7 +44,7 @@ class ResultsReader:
             try:
                 df = pd.read_csv(file_path)
                 print(f"File '{file_path}' successfully loaded as DataFrame.")
-                dfs.append(df)
+                dfs.append(self._fix_metrics(df))
             except Exception as e:
                 print(f"Error: Unable to open '{file_path}'", e)
 
@@ -77,13 +77,13 @@ class ResultsReader:
         # remove time and reps columns, keep only reps = 1
         if self.REPS in df.columns:
             df = df[df[self.REPS] == 1]
+            
         var_cols = df.filter(like=self.VAR_PREFIX, axis=1).columns.tolist()
         cols_to_drop = var_cols + self.DROP_COLUMNS
         
         cols_to_drop = set(cols_to_drop).intersection(df.columns) # only if the columns are still there
         df = df.drop(columns=cols_to_drop, axis=1)
 
-        df = self._fix_metrics(df)
         df = self._add_new_metrics(df)
         
         non_metric_cols = self.FILTERABLE + [self.ID]
@@ -97,11 +97,14 @@ class ResultsReader:
         # was incorrectly implemented first
         DF = "[DF] Differential Fairness"
         DF_INV = "[DF] Differential Fairness if 0 was the positive label"
+        ONE_DF = "[DF] Differential Fairness for One Attribute"
         
         if DF_INV not in df.columns:
             return df
+        
+        one_df_cols = [col for col in df.columns if ONE_DF in col]
                 
-        df[DF] = df[[DF, DF_INV]].max(axis=1)
+        df[DF] = df[one_df_cols + [DF, DF_INV]].max(axis=1)
         
         return df.drop([SF_INV, DF_INV], axis = 1)
     

@@ -61,18 +61,17 @@ class VAEMaskModel(Model):
         print(self._mask_weights)  
 
         # Build the mask_model
-        tensor = torch.tensor(X.values, dtype=torch.float32)
-        self._mask_model = self._train_vae(tensor, y, self._vm_config.epochs)   
+        if len(self._vm_config.lossed_used)>0:
+            tensor = torch.tensor(X.values, dtype=torch.float32)
+            self._mask_model = self._train_vae(tensor, y, self._vm_config.epochs)   
         
-        #self._has_been_fitted = True
+        #self._has_been_fitted = True # it is set in the tester instead atm
 
     def predict(self, X: pd.DataFrame, binary = True) -> np.array:
         """ Uses the previously trained ML model
 
         :param X: testing data
         :type X: pd.DataFrame
-        :param other: dictionary of any other parms that we might wish to pass?, defaults to {}
-        :type other: Dict[str, Any], optional
 
         :return: predictions for each row of X
         :rtype: np.array
@@ -87,6 +86,9 @@ class VAEMaskModel(Model):
         return self._binarise(preds)    
         
     def _mask(self, X: pd.DataFrame, mask_values: List[int]) -> pd.DataFrame:
+        if len(self._vm_config.lossed_used)==0: # if vae not used. 
+            return self.post_mask_transform(self._mask_only_attr(X, mask_values))
+        
         tensor = torch.tensor(X.values, dtype=torch.float32)
         
         if VERBOSE:
@@ -102,6 +104,13 @@ class VAEMaskModel(Model):
             print(df)
             print(self.post_mask_transform(df))  
         return self.post_mask_transform(df)
+    
+    def _mask_only_attr(self, X: pd.DataFrame, mask_values: List[int]) -> pd.DataFrame:
+        for i, val in zip(self._vm_config.sens_column_ids, mask_values):
+            print("manually setting ", X.columns[i], val)
+            X.iloc[:, i] = val
+        
+        return X
     
     def _train_vae(self, X: Tensor, y: np.array, epochs = 500):
         if self._has_been_fitted: # TODO: verify this works
