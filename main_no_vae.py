@@ -7,7 +7,7 @@ import sys
 n_repetitions = 4
 results_filename = "MAIN_only_NO_VAE_"
 
-# -------
+# ------- 
 
 torch.autograd.set_detect_anomaly(True)
 # TODO: redirect output
