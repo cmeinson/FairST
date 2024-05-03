@@ -53,29 +53,6 @@ class DefaultData(Data):
         
         return dataset
         
-        dataset = dataset.drop(
-            ['id', 'name', 'first', 'last', 'compas_screening_date', 'dob', 'decile_score',
-             'days_b_screening_arrest', 'c_jail_in', 'c_jail_out', 'c_case_number',
-             'c_offense_date', 'c_arrest_date', 'c_days_from_compas', 'is_recid', 'r_case_number',
-             'r_charge_degree', 'r_days_from_arrest', 'r_offense_date', 'r_charge_desc', 'r_jail_in', 'r_jail_out',
-             'violent_recid', 'is_violent_recid', 'vr_case_number', 'vr_charge_degree', 'vr_offense_date',
-             'vr_charge_desc', 'type_of_assessment', 'decile_score', 'score_text', 'screening_date',
-             'v_type_of_assessment', 'v_score_text', 'v_screening_date', 'in_custody', 'out_custody',
-             'start', 'end', 'event'], axis=1)
-        
-        dataset = dataset.dropna()
-
-        dataset['race'] = np.where(dataset['race'] != 'Caucasian', 0, 1)
-        dataset['sex'] = np.where(dataset['sex'] == 'Female', 0, 1)
-        dataset['age_cat'] = np.where(dataset['age_cat'] == 'Greater than 45', 45, dataset['age_cat'])
-        dataset['age_cat'] = np.where(dataset['age_cat'] == '25 - 45', 25, dataset['age_cat'])
-        dataset['age_cat'] = np.where(dataset['age_cat'] == 'Less than 25', 0, dataset['age_cat'])
-        dataset['c_charge_degree'] = np.where(dataset['c_charge_degree'] == 'F', 1, 0)
-
-        dataset.rename(index=str, columns={"two_year_recid": "Probability"}, inplace=True)
-        dataset['Probability'] = np.where(dataset['Probability'] == 0, 1, 0)
-
-        return dataset
 
     def get_sensitive_column_names(self) -> List[str]:
         """

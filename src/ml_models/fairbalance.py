@@ -29,10 +29,12 @@ class FairBalanceModel(Model):
             
             if key not in group_weight:
                 group_weight[key] = 0
+                
             group_weight[key] += 1
             if key_class not in groups_class:
                 groups_class[key_class] = []
             groups_class[key_class].append(i)
+            
         sample_weight = np.array([1.0]*len(y))
         for key in groups_class:
             weight = group_weight[key[:-1]]/len(groups_class[key])

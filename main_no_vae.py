@@ -57,7 +57,7 @@ for e in range(10):
         print(e, " iteration of 4x dataset:", dataset)
         print('~'*100)
         
-        for s in [["race"],["sex"]]: #  ["sex","race"],["race"],["sex"]
+        for s in [["race","sex"]]: #  ["sex","race"],["race"],["sex"]
             if dataset in [Tester.GERMAN_D, Tester.DEFAULT_D] and "race" in s:
                 continue
             
@@ -66,7 +66,7 @@ for e in range(10):
                 ml_configs(model, all_losses, s, default_values[0], default_values[1], default_values[2], default_values[3], loss_params, baselines=baselines)
                 for model in models
             ]))
-            try_test(results_filename, s, dataset, metrics, mls, n_repetitions=3)
+            try_test(results_filename, s, dataset, metrics, mls, n_repetitions=4)
 
 
 
@@ -79,7 +79,7 @@ for e in range(10):
         print(e, " iteration of 3x dataset:", dataset)
         print('~'*100)
         
-        for s in [["race"],["sex"]]: #  ["sex","race"],["race"],["sex"]
+        for s in [["race","sex"]]: #  ["sex","race"],["race"],["sex"]
             if dataset in [Tester.GERMAN_D, Tester.DEFAULT_D] and "race" in s:
                 continue
             
@@ -88,5 +88,5 @@ for e in range(10):
                 ml_configs(model, all_losses, s, default_values[0], default_values[1], default_values[2], default_values[3], loss_params, baselines=baselines)
                 for model in models
             ]))
-            try_test(results_filename, s, dataset, metrics, mls, n_repetitions=3) # I accidentally did only one at first :)
+            try_test(results_filename, s, dataset, metrics, mls, n_repetitions=4)
 
