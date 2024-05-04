@@ -139,7 +139,7 @@ class ResultsGrapher:
             if point_label in labels:
                 return labels[point_label]
             
-            return 'FVAEM loss '+point_label
+            return 'FairST loss '+point_label
         
         if not self.use_comment_as_label:
             return other[:50]

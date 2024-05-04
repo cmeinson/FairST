@@ -111,8 +111,8 @@ def get_all_single_attr_files(include_no_vae = False):
 
 def get_all_multi_attr_files(include_no_vae = False):
     filename = 'RESULTS_'
-    #if include_no_vae:
-    #    filename = 'RESULTS_with_no_vae_'
+    if include_no_vae:
+        filename = 'RESULTS_with_no_vae_'
         
     files = []
     datasets = []

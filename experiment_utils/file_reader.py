@@ -104,9 +104,9 @@ class ResultsReader:
         
         one_df_cols = [col for col in df.columns if ONE_DF in col]
                 
-        df[DF] = df[one_df_cols + [DF, DF_INV]].max(axis=1)
+        df[DF] = df[[DF, DF_INV]].max(axis=1)
         
-        return df.drop([SF_INV, DF_INV], axis = 1)
+        return df.drop((one_df_cols + [SF_INV, DF_INV]), axis = 1)
     
     def _add_new_metrics(self, df):
         df['TP'] = df['precision'].mul(df['mean_pred'])
