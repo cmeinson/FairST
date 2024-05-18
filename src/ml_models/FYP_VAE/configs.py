@@ -19,9 +19,6 @@ class VAEMaskConfig:
         for loss in losses_used:
             self.config_loss(loss)
 
-        #print("VAE, CONF", self.epochs,self.latent_dim,self.vae_layers,self.lossed_used,self.lr)
-        #print("LOSS CONFIG:", self.loss_configs)
-
 
     def config_loss(self, loss_name, **kwargs):
         if loss_name == self.KL_DIV_LOSS:
@@ -36,16 +33,12 @@ class VAEMaskConfig:
             self._config_KL_sens(**kwargs)
         elif loss_name == self.POS_VECTOR_LOSS:
             self._config_pos_vec(**kwargs)
-        #print("UPDATED LOSS CONFIG:", loss_name, self.loss_configs[loss_name])
 
     def set_input_dim_and_sens_column_ids(self, input_dim, ids):
-        # TODO: this class got kinda ugly
         print("input dim:", input_dim)
         self.input_dim = input_dim
         self.sens_column_ids = ids
         self.non_sens_latent_dim = self.latent_dim - len(ids)
-        #for loss_config in self.loss_configs.values():
-        #    loss_config["non_sens_latent_dim"] = self.latent_dim - len(ids)
 
         if self.FLIPPED_ADV_LOSS in self.loss_configs:
             self.loss_configs[self.FLIPPED_ADV_LOSS]["input_dim"] = input_dim
@@ -58,13 +51,11 @@ class VAEMaskConfig:
             self.loss_configs[self.LATENT_S_ADV_LOSS]["input_dim"] = self.non_sens_latent_dim
 
 
-    #def _config_KL_div(self, weight=0.005): valye during first successfult tests
     def _config_KL_div(self, weight=0.005):
         self.loss_configs[self.KL_DIV_LOSS] = {
             "weight": weight
         }
 
-    #def _config_recon(self, weight=12):
     def _config_recon(self, weight=15):
         self.loss_configs[self.RECON_LOSS] = {
             "weight": weight
@@ -89,7 +80,6 @@ class VAEMaskConfig:
             "sens_col_ids" : self.sens_column_ids
         }
 
-    #def _config_KL_sens(self, weight=0.005):
     def _config_KL_sens(self, weight=9000):
         self.loss_configs[self.KL_SENSITIVE_LOSS] = {
             "weight": weight,

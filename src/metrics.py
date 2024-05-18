@@ -13,11 +13,9 @@ NO_EXCEPTIONS = True # even if div by 0 in metrc, still save results just as a v
 class MetricException(Exception):
     pass
 
-# TODO: abs in sf and df
-
 class Metrics:
     # All available metrics:
-    #performance metrics
+    # performance metrics
     ACC = "accuracy"
     PRE = "precision"
     REC = "recall"
@@ -30,7 +28,7 @@ class Metrics:
     ACC_S0 = "unprivileged acc"
     ACC_S1 = "privileged acc"
 
-    #fairness metrics
+    # fairness metrics
     AOD = "[AOD] Average Odds Difference"
     EOD = "[EOD] Equal Opportunity Difference"
     SPD = "[SPD] Statistical Parity Difference"
@@ -41,11 +39,9 @@ class Metrics:
     FR = "[FR] Flip Rate"
 
     SF = "[SF] Statistical Parity Subgroup Fairness"
-    #SF_INV = "[SF] Statistical Parity Subgroup Fairness if 0 was the positive label" # same value
     ONE_SF = "[SF] Statistical Parity Subgroup Fairness for One Attribute"
 
     DF = "[DF] Differential Fairness"
-    # DF_INV = "[DF] Differential Fairness if 0 was the positive label" was incorrectly implemented in the previous version. actually DF must be calcualted as max of this and DF metric
     ONE_DF = "[DF] Differential Fairness for One Attribute"
 
     M_EOD = "[MEOD] M Equal Opportunity Difference"
@@ -58,9 +54,8 @@ class Metrics:
     warnings.simplefilter("ignore")
 
     def __init__(self, X: pd.DataFrame, y: np.array, preds: np.array, predict: Callable[[pd.DataFrame], np.array]) -> None:
-        # might need more attributes idk
         self._X = X
-        self._X.reset_index(drop=True, inplace=True) # TODO: would it be better for everyone if this was done in the data class?
+        self._X.reset_index(drop=True, inplace=True) 
         self._y = y
         self._data_size = X.shape[0]
         self._preds = preds
@@ -138,7 +133,6 @@ class Metrics:
         if key not in self._computed_cms:
             tn, fp, fn, tp = confusion_matrix(self._y[idxs], self._preds[idxs]).ravel()
             cm = {'tp':tp, 'tn':tn, 'fp':fp, 'fn':fn, 'p': tp+fp, 'n':tn+fn}
-            # TODO: what if there are no positive / negative labels at all
             # div by 0 if there are no positive / negative labels at -all should not be the case
             cm['tpr'] = tp / self._div_guard(tp + fn)
             cm['fpr'] = fp / self._div_guard(fp + tn)
@@ -182,7 +176,6 @@ class Metrics:
     
     def edr(self, attribute: str) -> float:
         cm0, cm1 = self._get_attribute_cms(attribute)
-        # possible that it increases the error rate by predicting more positives for 0??? should explore. implement a metric to store er for both groups. 
         return (cm1['er'] - cm0['er'])
     
     def di(self, attribute: str) -> float:
@@ -245,7 +238,7 @@ class Metrics:
             return 1
         elif prob_sg1==0 or prob_sg2==0:   
             if NO_EXCEPTIONS:
-                return - 10**3 # I messed up this should have been a positive number. this still caused arrer. but this means no such case affected the metrics
+                return 10**15
             raise MetricException("DF fail")
         return prob_sg1 / prob_sg2
 
@@ -256,7 +249,6 @@ class Metrics:
         ratios = []
         for subgroup1, subgroup2 in list(permutations(subgroups, 2)):
             if len(subgroup1)!=0 and len(subgroup2)!=0:
-                # TODO should i do both outcomes???????
                 ratio = self._get_subgrups_df(subgroup1, subgroup2, outcome)
                 ratios.append(ratio)
 
@@ -279,7 +271,6 @@ class Metrics:
         for subgroup in subgroups:
             cm = self._confusion_matrix(subgroup)
             prs.append(cm['tpr'] + cm['fpr'])
-        # TODO: THIS SEEMS OFF 
         return 0.5*(max(prs) - min(prs))
 
     def flip_X(self,attribute):

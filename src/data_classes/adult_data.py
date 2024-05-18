@@ -2,41 +2,13 @@ from .data_interface import Data
 from typing import List
 import numpy as np
 import pandas as pd
-from sklearn.model_selection import train_test_split
-from sklearn import preprocessing
 
-"""
-age,            [continuous]    keep
-workclass,      [merge 8 -> 5 cat]  
-fnlwgt,         -[continuous]    DROP    basically contains sensitive data as far as i understand final weight: The weights on the Current Population Survey (CPS) files are controlled to independent estimates of the civilian noninstitutional population of the US.
-education,      -[16 cat]        DROP. it is a one to one mapping basically with education-num which is continuous
-education-num,  [continuous]    keep
-marital-status, [merge 7 -> binary]  
-occupation,     [15 cat] keep all for now but could merge some into ?
-relationship,   [6 -> 4 cat] Other-relative, Own-child, Spouse (Husband/Wife), None (THe rest)  
-race,
-sex,
-capital-gain,   bin ??? seems like a weird param
-capital-loss,   bin ??? seems like a weird param
-hours-per-week, [continuous]    keep
-native-country, - I kinda want to leave it out as it feels susss and potentially race encoding
 
-Probability - the Y label
-"""
-"""
-
-DROP: fnlwgt, education,  native-country
-
-"""
 
 class AdultData(Data):
-    # NB: if ur implementation of the class takes more than one file pls put it all into sub folder
 
     def __init__(self, preproc :str = None, test_ratio = 0.2) -> None:
         """
-        - reads the according dataset from the data folder,
-        - runs cleaning and preprocessing methods, chosen based on the preprocessing param
-        - splits the data into test and train
         :param preprocessing: determines the preprocessing method, defaults to None
         :type preprocessing: str, optional
         :param tests_ratio: determines the proportion of test data, defaults to 0.2
@@ -86,7 +58,6 @@ class AdultData(Data):
         X['relationship'] = X['relationship'].replace(['Wife', 'Husband'], 'Spouse') # TODO: to test the masks ability, see if it swithces this upon swithcing gender!!!!!!!!!
         X['relationship'] = X['relationship'].replace(['Not-in-family', 'Unmarried'], 'No') 
         
-        # occupation inspired by https://rpubs.com/giauyen123/1070743
         X['occupation'] = X['occupation'].replace(['Prof-specialty', 'Exec-managerial'], 'Professional') 
         X['occupation'] = X['occupation'].replace(['Other-service', 'Protective-serv'], 'Service') 
         X['occupation'] = X['occupation'].replace(['Adm-clerical', 'Tech-support'], 'Office Support') 
@@ -102,3 +73,30 @@ class AdultData(Data):
         :rtype: List[str]
         """
         return ['race', 'sex']
+    
+    
+    
+    
+"""
+age,            [continuous]    keep
+workclass,      [merge 8 -> 5 cat]  
+fnlwgt,         -[continuous]    DROP    basically contains sensitive data as far as i understand final weight: The weights on the Current Population Survey (CPS) files are controlled to independent estimates of the civilian noninstitutional population of the US.
+education,      -[16 cat]        DROP. it is a one to one mapping basically with education-num which is continuous
+education-num,  [continuous]    keep
+marital-status, [merge 7 -> binary]  
+occupation,     [15 cat] keep all for now but could merge some into ?
+relationship,   [6 -> 4 cat] Other-relative, Own-child, Spouse (Husband/Wife), None (THe rest)  
+race,
+sex,
+capital-gain,   bin ??? seems like a weird param
+capital-loss,   bin ??? seems like a weird param
+hours-per-week, [continuous]    keep
+native-country, - I kinda want to leave it out as it feels susss and potentially race encoding
+
+Probability - the Y label
+"""
+"""
+
+DROP: fnlwgt, education,  native-country
+
+"""

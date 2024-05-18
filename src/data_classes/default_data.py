@@ -8,10 +8,6 @@ import pandas as pd
 class DefaultData(Data):
     def __init__(self, preproc=None, test_ratio=0.2) -> None:
         """
-        - reads the according dataset from the ata folder,
-        - runs cleaning and preprocessing methods, chosen based on the preprocessing param
-        - splits the data into test and train
-
         :param preprocessing: determines the preprocessing method, defaults to None
         :type preprocessing: str, optional
         :param tests_ratio: determines the proportion of test data, defaults to 0.2
@@ -31,11 +27,7 @@ class DefaultData(Data):
 
     def my_columns(self, X):
         return X.drop(['ID', 'Probability'], axis=1)
-        return X[['sex', 'age', 'race',
-                  'juv_fel_count', 'juv_misd_count', 'juv_other_count',
-                  'priors_count', 'c_charge_degree', "decile_score.1", "v_decile_score"]] ##, ?? NOTE:  "v_decile_score"
-        # TODO: ADD MORE COLUMNS ONCE WE HAVE ONE HOT
-        #return X[["sex", "age_cat", "race", "priors_count", "c_charge_degree", "decile_score.1", "priors_count.1"]]
+    
 
     def _clean_data(self, dataset: pd.DataFrame) -> pd.DataFrame:
         # preprocessing done according to preprocessing.ipynb
@@ -60,6 +52,5 @@ class DefaultData(Data):
         :rtype: List[str]
         """
         # returns a list of names
-        return ['sex'] # For now removed the age cause it eas not used in a ny papers so not relevant in replication ['sex', 'age_cat', 'race']
-        # raise NotImplementedError
+        return ['sex'] 
 

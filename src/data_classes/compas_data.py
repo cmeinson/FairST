@@ -8,10 +8,6 @@ import pandas as pd
 class CompasData(Data):
     def __init__(self, preproc=None, test_ratio=0.2) -> None:
         """
-        - reads the according dataset from the ata folder,
-        - runs cleaning and preprocessing methods, chosen based on the preprocessing param
-        - splits the data into test and train
-
         :param preprocessing: determines the preprocessing method, defaults to None
         :type preprocessing: str, optional
         :param tests_ratio: determines the proportion of test data, defaults to 0.2
@@ -37,9 +33,7 @@ class CompasData(Data):
     def my_columns(self, X):
         return X[['sex', 'age', 'race',
                   'juv_fel_count', 'juv_misd_count', 'juv_other_count',
-                  'priors_count', 'c_charge_degree', "decile_score.1", "v_decile_score"]] ##, ?? NOTE:  "v_decile_score"
-        # TODO: ADD MORE COLUMNS ONCE WE HAVE ONE HOT
-        #return X[["sex", "age_cat", "race", "priors_count", "c_charge_degree", "decile_score.1", "priors_count.1"]]
+                  'priors_count', 'c_charge_degree', "decile_score.1", "v_decile_score"]] 
 
                                                                                    
     def fairbalance_columns(self, X):
@@ -51,7 +45,6 @@ class CompasData(Data):
         return X[["sex", "age_cat", "race", "priors_count", "c_charge_degree", "decile_score.1", "priors_count.1"]]
     
     def _clean_data(self, dataset: pd.DataFrame) -> pd.DataFrame:
-        # preprocessing done according to preprocessing.ipynb
         dataset = dataset.drop(
             ['id', 'name', 'first', 'last', 'compas_screening_date', 'dob', 'decile_score',
              'days_b_screening_arrest', 'c_jail_in', 'c_jail_out', 'c_case_number',
@@ -81,7 +74,5 @@ class CompasData(Data):
         :return: column names (in the X above) of all sensitive attributes in the given dataset
         :rtype: List[str]
         """
-        # returns a list of names
         return ['sex', 'race'] # For now removed the age cause it eas not used in a ny papers so not relevant in replication ['sex', 'age_cat', 'race']
-        # raise NotImplementedError
 

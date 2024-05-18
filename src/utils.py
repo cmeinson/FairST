@@ -2,9 +2,12 @@ import sys
 import os
 import itertools
 
-from typing import Optional, List
 from .tester import Tester
-from .ml_models import FairBalanceModel, FairMaskModel, VAEMaskModel, BaseModel, ReweighingModel, Model, VAEMaskConfig
+from .ml_models import (
+    VAEMaskModel,
+    Model,
+    VAEMaskConfig,
+)
 from .metrics import Metrics
 from .test_config import TestConfig
 
@@ -36,8 +39,7 @@ def try_test(results_filename, s, dataset, metric_names, mls, n_repetitions, att
             sys.exit()
         except Exception as e:
             print("failed test nr ",i+1, dataset, s)
-            #raise e
-            
+
 def get_vaemask_config(epochs, latent_dim, lr, vae_layers, loss, loss_params, mask_value = None):
     config = VAEMaskConfig(epochs=epochs, latent_dim=latent_dim, lr=lr, losses_used=loss, vae_layers=vae_layers, mask_values=mask_value)
     config.config_loss(config.KL_DIV_LOSS, weight = loss_params["w_kl_div"])
@@ -57,32 +59,28 @@ def ml_configs(ml_model, fyp_losses, attrs, epochs, latent_dim, lr, vae_layers, 
         TestConfig(Tester.FYP_VAE, ml_model, sensitive_attr=attrs, other={"c": "FYP", VAEMaskModel.VAE_MASK_CONFIG:  
             get_vaemask_config(epochs, latent_dim, lr, vae_layers, l, loss_params)}) for l in fyp_losses
     ]
-    #fyp = []
     available_base =  [  
         TestConfig(Tester.BASE_ML, ml_model, sensitive_attr = attrs),   
         TestConfig(Tester.FAIRMASK, ml_model, Model.DT_R, sensitive_attr=attrs),
         TestConfig(Tester.FAIRBALANCE, ml_model, sensitive_attr=attrs),
         TestConfig(Tester.REWEIGHING, ml_model, sensitive_attr=attrs),
-        TestConfig(Tester.LFR, ml_model, other={"c":"LFR"}, sensitive_attr = attrs), #base_model_bias_mit=Tester.REWEIGHING
+        TestConfig(Tester.LFR, ml_model, other={"c":"LFR"}, sensitive_attr = attrs), #base_model_bias_mit=Tester.REWEIGHING # setting fotr using pre processing and post processing
     ] 
     if baselines==None:
         return available_base + fyp
     
     bases = [config for config in available_base if config.bias_mit in baselines]
     return bases + fyp
-    
-            
+
+
 def run_all_losses(dataset, epochs, latent_dim, lr, vae_layers, loss_params, results_filename, models = default_models, n_reps = 2, metrics = Metrics.get_all_names()):
     
-    for s in [["race","sex"]]: #  ["sex","race"],["race"],["sex"]
+    for s in [["sex","race"],["race"],["sex"]]: 
         if dataset in [Tester.GERMAN_D, Tester.DEFAULT_D] and "race" in s:
-            continue
-        # check German and default credit only run with sex
-        
+            continue        
         
         mls = list(itertools.chain.from_iterable([
             ml_configs(model, all_losses, s, epochs, latent_dim, lr, vae_layers, loss_params)
             for model in models
         ]))
         try_test(results_filename, s, dataset, metrics, mls, n_reps)
-        
