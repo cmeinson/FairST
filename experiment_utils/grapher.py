@@ -17,8 +17,8 @@ class ResultsGrapher:
     STYLE_IQR = "style: iqr over each label"
     def __init__(self, reader: ResultsReader) -> None:
         self.reader = reader
-        self.cmap = sns.color_palette("flare",11) #get_cmap("tab10")
-        self.cmap_bl = sns.color_palette("viridis",6) #get_cmap("tab10")
+        self.cmap = sns.color_palette("flare",60)+sns.color_palette("viridis",50) #get_cmap("tab10")
+        #self.cmap_bl = sns.color_palette("viridis",48) #get_cmap("tab10")
         self.show_legend = True
         self.use_comment_as_label = False
         self.separate_ml_models = True
@@ -97,34 +97,32 @@ class ResultsGrapher:
 
     def get_color(self, label):  # 5
         colors = {
-            "K": 6,
+            "FairST": 4,
+            
+            "VAE": 0,
+            "MASK":1, 
+            "L": 2,
+            "F": 3,
+            "K": 4,
+            "P": 5, 
+            "FP": 6,
+            "LP": 7,
+            
+            "LK": 9, 
             "KP": 10,
-            
-            "LF": 1,
-            "FK": 2,
-            "LK": 3,
-            "LP": 4,
-            "P": 5,
-            "L": 7,
-            "FP": 8,
-            "F": 9,
-            
-            "VAE": 0
-        }
-        colors_bl = { 
-            "MASK":0,          
-            "B:FM":4,
-            "B:FB":5,
-            "B:RW":2,
-            "B:LFR":3
+            "FK": 11,
+            "LF": 12,
+                                  
+            "B:FM":9,
+            "B:LFR":0,
+            "B:RW":11,
+            "B:FB":13,
         }
         if label in colors:
-            return self.cmap[colors[label]]
+            return self.cmap[int(colors[label]*8)]
         
-        if label in colors_bl:
-            return self.cmap_bl[colors_bl[label]]
         
-        return self.cmap_bl[1]
+        return self.cmap[8*8]
 
     def _get_legend_text(self, other, point_label = None):
         if point_label is not None:
@@ -135,6 +133,7 @@ class ResultsGrapher:
                 "B:LFR":'LFR',
                 'BASE':'Base Model',
                 'MASK':'Simple Attr Mask',
+                'FairST':'FairST'
             }
             if point_label in labels:
                 return labels[point_label]
@@ -159,7 +158,7 @@ class ResultsGrapher:
                     row[x_metric],
                     row[y_metric],
                     point_label,  # +'|'+ self._get_legend_text(label),
-                    fontsize=10,  # 12,
+                    fontsize=9,  # 12,
                     ha="right",
                     va="bottom",
                     color=color,

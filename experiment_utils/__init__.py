@@ -60,6 +60,7 @@ def plot_multiple_metrics(f, files, dataset, metrics_to_use = ["SF", "DF"],  x_m
                     
 
     plt.rc('axes', axisbelow=True)
+    
     plt.tight_layout()  # Adjust layout to prevent overlapping
     plt.show()
             
@@ -97,14 +98,14 @@ def get_all_single_attr_files(include_no_vae = False):
 
     files.append(os.path.join("results",filename+"sex.csv"))
     datasets.append('Default')
-    titles.append('Default sex')
+    titles.append('Default-sex')
 
 
     for dataset in ["Adult", "Compas"]:
         for attr in [["race"], ["sex"]]:
             files.append(os.path.join("results",filename+'_'.join(attr)+".csv"))
             datasets.append(dataset)
-            titles.append(dataset + ' ' + ' '.join(attr))
+            titles.append(dataset + '-' + '&'.join(attr))
             
     return files, datasets, titles
 
@@ -122,7 +123,7 @@ def get_all_multi_attr_files(include_no_vae = False):
         for attr in [["race", "sex"]]:
             files.append(os.path.join("results",filename+'_'.join(attr)+".csv"))
             datasets.append(dataset)
-            titles.append(dataset + ' ' + ' '.join(attr))
+            titles.append(dataset + '-' + '&'.join(attr))
             
     return files, datasets, titles
 
@@ -131,3 +132,35 @@ def get_all_result_files(include_no_vae = False):
     s_files, s_datasets, s_titles = get_all_single_attr_files(include_no_vae)
     m_files, m_datasets, m_titles = get_all_multi_attr_files(include_no_vae)
     return s_files+m_files, s_datasets+m_datasets, s_titles+m_titles
+
+
+def add_legend(ax, labels, ncol=1):
+    grapher = ResultsGrapher(None)
+
+    handles = []
+    for i, l in enumerate(labels):
+        h = ax.scatter(
+                [],
+                [],
+                label=grapher._get_legend_text(l, l),
+                color=grapher.get_color(l),
+                alpha=0.8,
+            
+            )
+        handles.append(h)
+    
+    #ax.legend(handles, labels)
+    print(labels)
+    #legend = ax.legend()
+    
+    #fig = legend.figure
+    #legend_ax = fig.get_axes()[0]
+    
+    
+    
+    full_labels = [grapher._get_legend_text(l, l) for l in labels]
+    #ax.legend(handles=legend_ax.get_legend_handles_labels()[0], labels=legend_ax.get_legend_handles_labels()[1], loc='upper left',ncol=ncol)
+    ax.legend(handles, full_labels, loc='upper left',ncol=ncol)
+    ax.axis('off')
+    ax.set_xticks([])
+    ax.set_yticks([])

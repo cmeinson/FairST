@@ -31,19 +31,19 @@ Compas Dataset,FairMask Bias Mitigation,{},9,0,0,1,0,6
 Compas Dataset,LFR,{'c': 'LFR'},9,0,0,2,0,0
 Compas Dataset,No Bias Mitigation,{},40,40,40,40,40,40
 Compas Dataset,Reweighing Bias Mitigation,{},9,0,0,11,0,0
-Default Dataset,FYP VAE,"'Flipped ADV loss', 'Latent sens ADV loss', 'Reconstruction loss', 'KL divergence loss'",11,1,0,10,9,2
-Default Dataset,FYP VAE,"'Flipped ADV loss', 'Pos Y vec loss', 'Reconstruction loss', 'KL divergence loss'",16,0,0,18,22,4
-Default Dataset,FYP VAE,"'Flipped ADV loss', 'Reconstruction loss', 'KL divergence loss'",12,2,0,13,11,5
+Default Dataset,FYP VAE,"'Flipped ADV loss', 'Latent sens ADV loss', 'Reconstruction loss', 'KL divergence loss'",10,1,0,10,9,2
+Default Dataset,FYP VAE,"'Flipped ADV loss', 'Pos Y vec loss', 'Reconstruction loss', 'KL divergence loss'",15,0,0,18,22,4
+Default Dataset,FYP VAE,"'Flipped ADV loss', 'Reconstruction loss', 'KL divergence loss'",10,2,0,13,11,5
 Default Dataset,FYP VAE,"'Flipped ADV loss', 'Sensitive KL loss', 'Reconstruction loss', 'KL divergence loss'",8,1,0,5,5,4
-Default Dataset,FYP VAE,"'Latent sens ADV loss', 'Pos Y vec loss', 'Reconstruction loss', 'KL divergence loss'",15,1,0,8,8,3
-Default Dataset,FYP VAE,"'Latent sens ADV loss', 'Reconstruction loss', 'KL divergence loss'",15,2,0,10,13,4
-Default Dataset,FYP VAE,"'Pos Y vec loss', 'Reconstruction loss', 'KL divergence loss'",17,0,0,14,18,6
-Default Dataset,FYP VAE,"'Reconstruction loss', 'KL divergence loss'",13,1,0,13,15,3
-Default Dataset,FYP VAE,"'Sensitive KL loss', 'Latent sens ADV loss', 'Reconstruction loss', 'KL divergence loss'",12,1,0,9,9,2
+Default Dataset,FYP VAE,"'Latent sens ADV loss', 'Pos Y vec loss', 'Reconstruction loss', 'KL divergence loss'",14,1,0,8,8,3
+Default Dataset,FYP VAE,"'Latent sens ADV loss', 'Reconstruction loss', 'KL divergence loss'",14,2,0,9,12,4
+Default Dataset,FYP VAE,"'Pos Y vec loss', 'Reconstruction loss', 'KL divergence loss'",17,0,0,14,17,6
+Default Dataset,FYP VAE,"'Reconstruction loss', 'KL divergence loss'",12,1,0,13,15,3
+Default Dataset,FYP VAE,"'Sensitive KL loss', 'Latent sens ADV loss', 'Reconstruction loss', 'KL divergence loss'",11,1,0,9,9,2
 Default Dataset,FYP VAE,"'Sensitive KL loss', 'Pos Y vec loss', 'Reconstruction loss', 'KL divergence loss'",15,2,0,7,4,3
 Default Dataset,FYP VAE,"'Sensitive KL loss', 'Reconstruction loss', 'KL divergence loss'",14,2,0,7,6,5
-Default Dataset,FairBalance Bias Mitigation,{},15,1,0,8,6,1
-Default Dataset,FairMask Bias Mitigation,{},10,0,0,12,21,10
-Default Dataset,LFR,{'c': 'LFR'},15,2,14,13,14,9
-Default Dataset,No Bias Mitigation,{},42,42,42,42,42,42
-Default Dataset,Reweighing Bias Mitigation,{},19,1,0,8,0,2
+Default Dataset,FairBalance Bias Mitigation,{},14,1,0,7,6,0
+Default Dataset,FairMask Bias Mitigation,{},8,0,0,12,19,8
+Default Dataset,LFR,{'c': 'LFR'},13,2,14,13,13,9
+Default Dataset,No Bias Mitigation,{},40,40,40,40,40,40
+Default Dataset,Reweighing Bias Mitigation,{},17,1,0,8,0,2
