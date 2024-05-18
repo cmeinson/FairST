@@ -1,4 +1,3 @@
-
 class VAEMaskConfig:
     KL_DIV_LOSS = "KL divergence loss"
     RECON_LOSS = "Reconstruction loss"
@@ -20,6 +19,7 @@ class VAEMaskConfig:
         for loss in losses_used:
             self.config_loss(loss)
 
+
     def config_loss(self, loss_name, **kwargs):
         if loss_name == self.KL_DIV_LOSS:
             self._config_KL_div(**kwargs)
@@ -35,13 +35,10 @@ class VAEMaskConfig:
             self._config_pos_vec(**kwargs)
 
     def set_input_dim_and_sens_column_ids(self, input_dim, ids):
-        # TODO: this class got kinda ugly
         print("input dim:", input_dim)
         self.input_dim = input_dim
         self.sens_column_ids = ids
         self.non_sens_latent_dim = self.latent_dim - len(ids)
-        #for loss_config in self.loss_configs.values():
-        #    loss_config["non_sens_latent_dim"] = self.latent_dim - len(ids)
 
         if self.FLIPPED_ADV_LOSS in self.loss_configs:
             self.loss_configs[self.FLIPPED_ADV_LOSS]["input_dim"] = input_dim
@@ -54,20 +51,17 @@ class VAEMaskConfig:
             self.loss_configs[self.LATENT_S_ADV_LOSS]["input_dim"] = self.non_sens_latent_dim
 
 
-    #def _config_KL_div(self, weight=0.005): valye during first successfult tests
     def _config_KL_div(self, weight=0.005):
         self.loss_configs[self.KL_DIV_LOSS] = {
             "weight": weight
         }
-        print(self.loss_configs[self.KL_DIV_LOSS])
 
-    #def _config_recon(self, weight=12):
     def _config_recon(self, weight=15):
         self.loss_configs[self.RECON_LOSS] = {
             "weight": weight
         }
 
-    def _config_latent_s(self, weight=0.11, lr=0.05, optimizer="Adam", layers=(30,30)):
+    def _config_latent_s(self, weight=0.1, lr=0.05, optimizer="Adam", layers=(30,30)):
         self.loss_configs[self.LATENT_S_ADV_LOSS] = {
             "weight": weight,
             "lr": lr,
@@ -75,7 +69,6 @@ class VAEMaskConfig:
             "layers": layers,
             "input_dim": self.non_sens_latent_dim,
         }
-        print(self.loss_configs[self.LATENT_S_ADV_LOSS])
 
     def _config_flipped(self, weight=0.01, lr=0.05, optimizer="Adam", layers=(50,30,10)):
         self.loss_configs[self.FLIPPED_ADV_LOSS] = {
@@ -86,15 +79,12 @@ class VAEMaskConfig:
             "input_dim": self.input_dim,
             "sens_col_ids" : self.sens_column_ids
         }
-        print(self.loss_configs[self.FLIPPED_ADV_LOSS])
 
-    #def _config_KL_sens(self, weight=0.005):
     def _config_KL_sens(self, weight=9000):
         self.loss_configs[self.KL_SENSITIVE_LOSS] = {
             "weight": weight,
             "sens_col_ids" : self.sens_column_ids
         }
-        print(self.loss_configs[self.KL_SENSITIVE_LOSS])
 
     def _config_pos_vec(self, weight=1200000):
         self.loss_configs[self.POS_VECTOR_LOSS] = {
@@ -108,6 +98,3 @@ class VAEMaskConfig:
         )
         config_str += ", ".join([f"{name}: {config}" for name, config in self.loss_configs.items()])
         return config_str
-
-
-    

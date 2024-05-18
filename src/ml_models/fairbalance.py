@@ -1,5 +1,4 @@
 from .ml_interface import Model
-from typing import List, Dict, Any
 import numpy as np
 import pandas as pd
 
@@ -13,13 +12,9 @@ class FairBalanceModel(Model):
         :param y: training data outcomes
         :type y: np.array
         """
-        # TODO:  | {"input_dim":X.shape[1]}
         self._model = self._get_model()
 
-        self._model.fit(X, y, sample_weight=self.FairBalance(X, y))
-        #if method != Model.NN_C:
-        #else:
-        #    self._model.fit(X, y, epochs=other["iter_1"], sample_weight=sample_weight)
+        self._fit(self._model, X, y,sample_weight=self.FairBalance(X, y))
 
     def FairBalance(self, X, y):
         groups_class = {}
@@ -33,10 +28,12 @@ class FairBalanceModel(Model):
             
             if key not in group_weight:
                 group_weight[key] = 0
+                
             group_weight[key] += 1
             if key_class not in groups_class:
                 groups_class[key_class] = []
             groups_class[key_class].append(i)
+            
         sample_weight = np.array([1.0]*len(y))
         for key in groups_class:
             weight = group_weight[key[:-1]]/len(groups_class[key])

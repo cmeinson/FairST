@@ -3,5 +3,4 @@ from .reweighing import ReweighingModel
 from .fairbalance import FairBalanceModel
 from .fairmask import FairMaskModel
 from .LFR import LFRModel
-from .EqOdd import EqOModel
 from .FYP_VAE import VAEMaskModel, VAEMaskConfig

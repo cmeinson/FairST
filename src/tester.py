@@ -1,8 +1,4 @@
-from os import path
-import pandas as pd
-import numpy as np
-import collections
-from typing import List, Dict, Any, Optional
+from typing import List
 
 from .ml_models import (
     FairBalanceModel,
@@ -12,11 +8,18 @@ from .ml_models import (
     ReweighingModel,
     Model,
     LFRModel,
-    EqOModel
 )
-from .data_classes import AdultData, CompasData, GermanData, MEPSData, DummyData, Data
+from .data_classes import (
+    AdultData,
+    CompasData,
+    GermanData,
+    MEPSData,
+    DummyData,
+    Data,
+    DefaultData,
+)
 from .metrics import Metrics, MetricException
-from .utils import TestConfig
+from .test_config import TestConfig
 from .result_writer import ResultsWriter
 
 MAX_RETRY = 15
@@ -27,6 +30,7 @@ class Tester:
     ADULT_D = "Adult Dataset"
     COMPAS_D = "Compas Dataset"
     MEPS_D = "MEPS Dataset"
+    DEFAULT_D = "Default Dataset"
     GERMAN_D = "German Dataset"
     DUMMY_D = "Dummy Dataset"
 
@@ -35,8 +39,6 @@ class Tester:
     FAIRMASK = "FairMask Bias Mitigation"
     FYP_VAE = "FYP VAE"
     LFR = "LFR"
-    EQODDS = "EqOdds"
-    EQODDS_ALT = "EqOdds ALT"
     REWEIGHING = "Reweighing Bias Mitigation"
     BASE_ML = "No Bias Mitigation"
 
@@ -45,19 +47,23 @@ class Tester:
     def __init__(
         self, file_name: str, dataset_name: str, metric_names: List[str]
     ) -> None:
-        # same METRICS, FILENAME, DATASET
+        # same METRICS, FILENAME, DATASET to be used for one tester instance
         self._exceptions = []
         self._initd_data = {}
         self._base_models = (
             {}
         )  # models with no bias mitigation should be separate for each data preproc and renewes for each datat split
-        self._fyp_vae_models = {} # if 2 instances of my model are used that differ only in base ml method, it can be reused!
+        self._fyp_vae_models = (
+            {}
+        )  # if 2 instances of my model are used that differ only in base ml method, it can be reused!
 
         self._dataset_name = dataset_name
         self._metric_names = metric_names
         self._results_writer = ResultsWriter(file_name, dataset_name)
 
-        self._preds = None  # ????
+        self._preds = None 
+        self._rep_proba_preds = None
+        self._last_test_data = None
 
     def run_tests(
         self, test_configs: List[TestConfig], repetitions=1, save_intermid_results=False
@@ -72,24 +78,26 @@ class Tester:
             # RE TRAIN THE POST PROC no bias mit BASE MODELS! PASS IT INTO THE MODELS ON INIT. save it in self.
             self._base_models = {}  # set to none and train when needed by _get_model
             self._fyp_vae_models = {}
+            self._rep_proba_preds = []
 
-            self._results_writer.incr_id()
+            self._results_writer.change_id()
             # run each test config
             for conf in test_configs:
-                print(conf)
+                print("run", conf)
                 self._run_test(conf, save_intermid_results)
 
             # only update the data split for each data in self._initd_data dict. (the first it will have the same default)
             # -> the data split is only the same if the preproc is also the same (otherwise not comparable)
             self._update_all_data_splits()
 
-        self._results_writer.incr_id()
+        self._results_writer.change_id()
         # print all accumulated evals to file
         self._results_writer.write_final_results()
 
     def _run_test(self, config: TestConfig, save_intermid: bool):
         retrys = 0
         data = self._get_dataset(config.preprocessing)
+        config.n_cols = data.n_cols
         model = self._get_model(config)
 
         while True:
@@ -97,8 +105,12 @@ class Tester:
             model.fit(X, y)
 
             X, y = data.get_test_data()
-            predict = lambda x: model.predict(x.copy())  # used just for fr # TODO: i am not using fr - might remove this
+            predict = lambda x: model.predict(
+                x.copy()
+            )  # used just for fr metric
             self._preds = predict(X)
+            self._rep_proba_preds.append(model.predict(X.copy(), binary=False))
+            self._last_test_data = (X, y)
             try:
                 evals = self._evaluate(
                     Metrics(X, y, self._preds, predict), config.sensitive_attr
@@ -108,22 +120,19 @@ class Tester:
                 retrys += 1
                 if retrys == MAX_RETRY:
                     break
-                #   TODO: should i write something to file abt the fail or at least print
+                
             else:
+                print("adding result")
                 self._results_writer.add_result(config, evals, save_intermid)
                 break
 
-    def get_last_run_preds(self):
-        """for debugging. only really useful when running just a single config and a single rep"""
-        return self._preds
+    def get_last_run(self):
+        """for debugging. only really useful when running just a single rep"""
+        return self._rep_proba_preds, *self._last_test_data
 
     def get_exceptions(self):
         """for debugging: get exceptions from the last run"""
         return self._exceptions
-
-    # def get_last_data_split(self):
-    #    """for debugging"""
-    #    return *self._data.get_test_data(), *self._data.get_train_data()
 
     def _evaluate(self, metrics: Metrics, sensitive_attr):
         evals = {}
@@ -156,6 +165,8 @@ class Tester:
             data = CompasData(preproc)
         elif self._dataset_name == self.MEPS_D:
             data = MEPSData(preproc)
+        elif self._dataset_name == self.DEFAULT_D:
+            data = DefaultData(preproc)
         elif self._dataset_name == self.GERMAN_D:
             data = GermanData(preproc)
         elif self._dataset_name == self.DUMMY_D:
@@ -168,9 +179,8 @@ class Tester:
 
     def _get_model(self, config: TestConfig) -> Model:
         # if the same model previously initialized (likely for use as a base model for post proc)
-        # TODO: if 2 configs differ only in ml_method then can REUSE my method!!!!
-        
-        
+        # if 2 configs differ only in ml_method then can REUSE my method
+
         descr = self._get_model_descr(config)
         if descr in self._base_models:
             return self._base_models[descr]
@@ -186,23 +196,19 @@ class Tester:
             return FairMaskModel(config, self._get_base_model(config))
         elif name == self.LFR:
             return LFRModel(config)
-        elif name == self.EQODDS:
-            return EqOModel(config)
-        elif name == self.EQODDS_ALT:
-            return EqOModel(config, self._get_base_model(config))
         elif name == self.FYP_VAE:
-            # TODO: the reusability feature can be done better!!!! this messes up the retry attept in case of bad results!
             custom_hash = config.get_hash_without_ml_method()
             data = self._get_dataset(config.preprocessing)
-            model = VAEMaskModel(config, self._get_base_model(config), data.post_mask_transform)
+            model = VAEMaskModel(
+                config, self._get_base_model(config), data.post_mask_transform
+            )
 
             if custom_hash in self._fyp_vae_models:
                 fitted_model = self._fyp_vae_models[custom_hash]
                 model._has_been_fitted = True
                 model._mask_model = fitted_model._mask_model
-                print("REUSING A MODEL!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
             else:
-                self._fyp_vae_models[custom_hash]  =  model
+                self._fyp_vae_models[custom_hash] = model
 
             return model
         else:
@@ -213,7 +219,7 @@ class Tester:
         self._check_base_model(config)
 
         if base_descr not in self._base_models:
-            # train a base model with no bias mit (unique for every prproc+ml_method)
+            # train a base model with no bias mit (unique for every preproc+ml_method)
             X, y = self._get_dataset(config.preprocessing).get_train_data()
             model = self._get_model(config.get_base_model_config())
             model.fit(X, y)

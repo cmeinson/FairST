@@ -1,16 +1,16 @@
-
 from typing import Dict, List
 import pandas as pd
-from .utils import TestConfig
+from .test_config import TestConfig
 import numpy as np
 from os import path
-from .ml_models import  VAEMaskModel
+from .ml_models import VAEMaskModel
 import copy
 import random
 import sys
 
 
-ALTERNATIVE_FILE_NAME_END = "_new"
+ALTERNATIVE_FILE_NAME_END = "_new"  # if a file with desired name alr exists
+
 
 class ResultsWriter:
     # accumulate all evals and print into file
@@ -19,31 +19,40 @@ class ResultsWriter:
         self._evals_per_metric_per_config = {}
         self._file_name = file_name
         self._dataset_name = dataset_name
-        self._experiment_id = random.randint(0,sys.maxsize - 10**5)
+        self._experiment_id = None
+        self.change_id()
 
-    def incr_id(self):
-        self._experiment_id += 1
+    def change_id(self):
+        self._experiment_id = random.randint(0, sys.maxsize)
 
-    def add_result(self, test_config, evals, write_to_file = False):
+    def add_result(self, test_config, evals, write_to_file=False):
         if write_to_file:
             self._write_evals_to_file(test_config, evals)
-        
+
         if test_config not in self._evals_per_metric_per_config:
-            self._evals_per_metric_per_config[test_config] = {key: [evals[key]] for key in evals}
+            self._evals_per_metric_per_config[test_config] = {
+                key: [evals[key]] for key in evals
+            }
         else:
             for metric in evals:
-                self._evals_per_metric_per_config[test_config][metric].append(evals[metric])  
+                self._evals_per_metric_per_config[test_config][metric].append(
+                    evals[metric]
+                )
 
     def write_final_results(self):
         for config, evals in self._evals_per_metric_per_config.items():
-            self._write_evals_to_file(config, evals)    
-    
-    def _write_evals_to_file(self, test_config: TestConfig, evals: Dict[str, List[float]]):
+            self._write_evals_to_file(config, evals)
+
+    def _write_evals_to_file(
+        self, test_config: TestConfig, evals: Dict[str, List[float]]
+    ):
         reps = np.size(list(evals.values())[0])
 
         other = copy.deepcopy(test_config.other)
         if VAEMaskModel.VAE_MASK_CONFIG in other:
-            other[VAEMaskModel.VAE_MASK_CONFIG] = str(other[VAEMaskModel.VAE_MASK_CONFIG])
+            other[VAEMaskModel.VAE_MASK_CONFIG] = str(
+                other[VAEMaskModel.VAE_MASK_CONFIG]
+            )
 
         entry = {
             "time": [pd.Timestamp.now()],
@@ -58,10 +67,9 @@ class ResultsWriter:
         entry.update({key: [np.average(evals[key])] for key in evals})
         entry.update({"VAR|" + key: [np.var(evals[key])] for key in evals})
 
-        entry.update({"id": [int(self._experiment_id)]})
+        entry.update({"id": [str(self._experiment_id)]})
 
         res = pd.DataFrame(entry)
-        
 
         self._append_to_file(res)
 
@@ -69,10 +77,10 @@ class ResultsWriter:
         try:
             res_new = res
             if path.exists(self._file_name):
-                res_new = pd.concat([res, pd.read_csv(self._file_name)], ignore_index=True)
-                
-            #formatters = {'id': '{:.0f}'.format}
-            res_new['id'] = res_new['id'].astype(int)
+                res_new = pd.concat(
+                    [res, pd.read_csv(self._file_name)], ignore_index=True
+                )
+
             res_new.to_csv(self._file_name, index=False)
         except IOError as e:
             root, extension = path.splitext(self._file_name)
@@ -80,9 +88,3 @@ class ResultsWriter:
             print(e)
             print("RENAMING OUTPUT FILE TO:", self._file_name)
             self._append_to_file(res)
-            
-
-
-
-
-    

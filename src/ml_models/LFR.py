@@ -1,18 +1,11 @@
 from .ml_interface import Model
-from typing import List, Dict, Any
 import numpy as np
 import pandas as pd
-
-
-import pandas as pd
-import numpy as np
 
 from aif360.datasets import BinaryLabelDataset
+from aif360.algorithms.preprocessing import LFR
 
-from aif360.algorithms.preprocessing.lfr import LFR
-
-import numpy as np
-from ..utils import TestConfig
+from ..test_config import TestConfig
 
 
 class LFRModel(Model):
@@ -34,13 +27,14 @@ class LFRModel(Model):
         :type y: np.array
 
         """
-        
-        if len(self._config.sensitive_attr)>1:
-            print("!!!!!!!!!!!!!!!!!!!! Multiple sensitive attributes not supported for LFR", self._config.sensitive_attr)
+
+        if len(self._config.sensitive_attr) > 1:
+            print(
+                "!!!!!!!!!!!!!!!!!!!! Multiple sensitive attributes not supported for LFR",
+                self._config.sensitive_attr,
+            )
             return
-        
-        
-        
+
         copied_df = X.copy().reset_index(drop=True)
 
         # Assuming 'sensitive_attr' is the column representing sensitive attributes
@@ -66,19 +60,18 @@ class LFRModel(Model):
 
         dataset_transf = self._TR_model.transform(dataset)
 
-        # features = dataset_transf.features
-        # Create a DataFrame
-        # df = pd.DataFrame(features, columns=dataset_transf.feature_names)
-
         self._model = self._get_model()
 
-        self._model.fit(dataset_transf.features, y)
+        self._fit(self._model, dataset_transf.features, y)
 
-    def predict(self, X: pd.DataFrame) -> np.array:
-        if len(self._config.sensitive_attr)>1:
-            print("!!!!!!!!!!!!!!!!!!!! Multiple sensitive attributes not supported for LFR", self._config.sensitive_attr)
+    def predict(self, X: pd.DataFrame, binary=True) -> np.array:
+        if len(self._config.sensitive_attr) > 1:
+            print(
+                "!!!!!!!!!!!!!!!!!!!! Multiple sensitive attributes not supported for LFR",
+                self._config.sensitive_attr,
+            )
             return np.zeros(len(X))
-        
+
         copied_df = X.copy().reset_index(drop=True)
         y = np.zeros(len(X))
 
@@ -89,5 +82,4 @@ class LFRModel(Model):
         )
 
         dataset_transf = self._TR_model.transform(dataset)
-        preds = self._model.predict(dataset_transf.features)
-        return self._binarise(preds)
+        return self._predict(self._model, dataset_transf.features, binary=binary)

@@ -1,48 +1,22 @@
 from typing import List, Tuple
 import numpy as np
 import pandas as pd
-from sklearn.model_selection import train_test_split
 
-from typing import List, Dict, Any
+from typing import List
 import numpy as np
 import pandas as pd
-
-from sklearn.neural_network import MLPClassifier
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.svm import SVC
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.naive_bayes import GaussianNB
-from sklearn.linear_model import LogisticRegression
-from sklearn.tree import DecisionTreeRegressor,DecisionTreeClassifier
-from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestClassifier
 
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from sklearn.compose import make_column_selector as selector
 from sklearn.compose import ColumnTransformer
-
-from skorch import NeuralNetClassifier
-from torch import nn, float32
-import torch.nn.functional as F
-
-from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
-from keras.models import Sequential
-from keras.layers import Activation
-from keras.optimizers import SGD
-from keras.layers import Dense
-
 
 
 
 class Data:
-    name_split_symbol = ": cat="
+    name_split_symbol = ": cat=" # used in one hot encoding
     def __init__(self, file_name: str, preprocessing:str = None, test_ratio = 0.2) -> None:
         """
-        - reads the according dataset from the data folder,
-        - runs cleaning and preprocessing methods, chosen based on the preprocessing param
-        - splits the data into test and train
-
         :param preprocessing: determines the preprocessing method, defaults to None
         :type preprocessing: str, optional
         :param tests_ratio: determines the proportion of test data, defaults to 0.2
@@ -57,18 +31,14 @@ class Data:
         self._raw = pd.read_csv(file_name)
 
         self.dataset_orig = self._clean_data(self._raw)
-        # base preproc - remove nans, any feature eng i need 
-        # Do default pre-processing
-
-
+       
         self._y = self._get_labels(self.dataset_orig)
 
         # selected preproc columns   
         # fit and apply trainsformer normalisation, one hot encoding (NOTE: keep track of sensitive columns_)
-        # TODO; func that would reverse one hot enc for diplay opurposes?
         self._untransformed_cols = self._get_columns(self.dataset_orig, preprocessing)
         self._X = self._std_data_transform(self._untransformed_cols)
-  
+        self.n_cols = len(self._X.columns)
         # data split
         self.new_data_split()
 
@@ -212,13 +182,13 @@ class DummyData(Data):
 
             luck = np.random.uniform(-5, 4) 
 
-            money = np.exp(luck + privilege*0.7 + merit*0.3) #(0 - 155) 55 for unprivileged
+            money = np.exp(luck + privilege*0.7 + merit*0.3)
 
-            education = ((luck+5)/10 + merit + privilege)**2 # 0-9
-            first_job = education/5 + merit + money/100 + np.random.uniform(0,1) # - 5
-            something = np.random.uniform(0,1) + money/120 # up to 2
-            something2 = np.random.uniform(0,1)*0.2 + privilege*0.8 # up to 2
-            something3 = np.random.uniform(0,1)*0.3 + merit*0.5 + privilege*0.2 # up to 2
+            education = ((luck+5)/10 + merit + privilege)**2
+            first_job = education/5 + merit + money/100 + np.random.uniform(0,1)
+            something = np.random.uniform(0,1) + money/120 
+            something2 = np.random.uniform(0,1)*0.2 + privilege*0.8 
+            something3 = np.random.uniform(0,1)*0.3 + merit*0.5 + privilege*0.2 
 
             y = 1
             if merit<0.6:

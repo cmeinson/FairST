@@ -1,69 +1,86 @@
-from typing import Optional, List
+import sys
+import os
+import itertools
 
-class TestConfig:
-    
-    def __init__(self, bias_mit: str, ml_method: str, bias_ml_method: Optional[str]=None, preprocessing: Optional[str]=None, base_model_bias_mit: Optional[str]=None, sensitive_attr:Optional[List[str]]=None, other = {}) -> None:
-        self.bias_mit = bias_mit
-        self.ml_method = ml_method
-        self.bias_ml_method = bias_ml_method
-        self.preprocessing = preprocessing
-        self.sensitive_attr = sensitive_attr
-        self.base_model_bias_mit = base_model_bias_mit # for post porc methods
-        self.other=other
+from .tester import Tester
+from .ml_models import (
+    VAEMaskModel,
+    Model,
+    VAEMaskConfig,
+)
+from .metrics import Metrics
+from .test_config import TestConfig
 
-    def __hash__(self):
-        str_other = {}
-        if self.other is not None:
-            str_other = {key: str(value) for key, value in self.other.items()}
 
-        # Use hash function on all relevant attributes
-        hash_tuple = (
-            self.bias_mit,
-            self.ml_method,
-            self.bias_ml_method,
-            self.preprocessing,
-            self.base_model_bias_mit,
-            tuple(self.sensitive_attr) if self.sensitive_attr else None,
-            frozenset(str_other.items()),
-        )
-        return hash(hash_tuple)
-    
-    def get_hash_without_ml_method(self):
-        # Use hash function on all relevant attributes
-        str_other = {}
-        if self.other is not None:
-            str_other = {key: str(value) for key, value in self.other.items()}
+default_models = [Model.LG_R, Model.SV_C, Model.NB_C, Model.RF_C, Model.DT_R, Model.EN_R, Model.NN_C,]
 
-        hash_tuple = (
-            self.bias_mit,
-            self.bias_ml_method,
-            self.preprocessing,
-            self.base_model_bias_mit,
-            tuple(self.sensitive_attr) if self.sensitive_attr else None,
-            frozenset(str_other.items()),
-        )
-        return hash(hash_tuple)
+all_losses = [
+        [VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS], 
+        [VAEMaskConfig.POS_VECTOR_LOSS,         VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS], 
+        [VAEMaskConfig.KL_SENSITIVE_LOSS,         VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS], 
+        [VAEMaskConfig.LATENT_S_ADV_LOSS,         VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS], 
+        [VAEMaskConfig.FLIPPED_ADV_LOSS,         VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS], 
+        [VAEMaskConfig.LATENT_S_ADV_LOSS, VAEMaskConfig.POS_VECTOR_LOSS,        VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS], 
+        [VAEMaskConfig.KL_SENSITIVE_LOSS, VAEMaskConfig.POS_VECTOR_LOSS,        VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS],
+        [VAEMaskConfig.FLIPPED_ADV_LOSS,  VAEMaskConfig.POS_VECTOR_LOSS,        VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS], 
+        [VAEMaskConfig.FLIPPED_ADV_LOSS,  VAEMaskConfig.KL_SENSITIVE_LOSS,        VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS], 
+        [VAEMaskConfig.FLIPPED_ADV_LOSS,  VAEMaskConfig.LATENT_S_ADV_LOSS,        VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS], 
+        [VAEMaskConfig.KL_SENSITIVE_LOSS,  VAEMaskConfig.LATENT_S_ADV_LOSS,        VAEMaskConfig.RECON_LOSS, VAEMaskConfig.KL_DIV_LOSS], 
+    ]
+
+def try_test(results_filename, s, dataset, metric_names, mls, n_repetitions, attempts = 3):
+    for i in range(attempts):
+        try:
+            results_file = os.path.join("results",results_filename +"_".join(s)+".csv")
+            tester = Tester(results_file, dataset, metric_names)
+            tester.run_tests(mls, n_repetitions, save_intermid_results=True)
+            return
+        except KeyboardInterrupt:
+            sys.exit()
+        except Exception as e:
+            print("failed test nr ",i+1, dataset, s)
+
+def get_vaemask_config(epochs, latent_dim, lr, vae_layers, loss, loss_params, mask_value = None):
+    config = VAEMaskConfig(epochs=epochs, latent_dim=latent_dim, lr=lr, losses_used=loss, vae_layers=vae_layers, mask_values=mask_value)
+    config.config_loss(config.KL_DIV_LOSS, weight = loss_params["w_kl_div"])
+    config.config_loss(config.RECON_LOSS, weight = loss_params["w_recon"])
     
-    def __str__(self):
-        attrs = [
-            f"{key}={value}"
-            for key, value in self.__dict__.items()
-            if key not in ["other"]
-        ]
-        other_attrs = [
-            f"{key}={value}"
-            for key, value in self.other.items()
-        ]
-        return f"TestConfig({', '.join(attrs + other_attrs)})"
+    config.config_loss(config.LATENT_S_ADV_LOSS, weight = loss_params["w_latent_s"], lr=loss_params["lr_latent_s"], layers=loss_params["layers_latent_s"])
+    config.config_loss(config.FLIPPED_ADV_LOSS, weight = loss_params["w_flipped"], lr=loss_params["lr_flipped"], layers=loss_params["layers_flipped"])
     
-    def get_base_model_config(self):
-        config = TestConfig(
-            bias_mit=self.base_model_bias_mit,
-            ml_method=self.ml_method,
-            bias_ml_method=self.bias_ml_method,
-            preprocessing=self.preprocessing,
-            sensitive_attr=self.sensitive_attr,
-            base_model_bias_mit = None,
-            other = self.other            
-        )
-        return config
+    config.config_loss(config.KL_SENSITIVE_LOSS, weight = loss_params["w_kl_sens"])
+    config.config_loss(config.POS_VECTOR_LOSS, weight = loss_params["w_pos_sens"])
+    
+    return config
+
+
+def ml_configs(ml_model, fyp_losses, attrs, epochs, latent_dim, lr, vae_layers, loss_params, baselines=None):
+    fyp  = [
+        TestConfig(Tester.FYP_VAE, ml_model, sensitive_attr=attrs, other={"c": "FYP", VAEMaskModel.VAE_MASK_CONFIG:  
+            get_vaemask_config(epochs, latent_dim, lr, vae_layers, l, loss_params)}) for l in fyp_losses
+    ]
+    available_base =  [  
+        TestConfig(Tester.BASE_ML, ml_model, sensitive_attr = attrs),   
+        TestConfig(Tester.FAIRMASK, ml_model, Model.DT_R, sensitive_attr=attrs),
+        TestConfig(Tester.FAIRBALANCE, ml_model, sensitive_attr=attrs),
+        TestConfig(Tester.REWEIGHING, ml_model, sensitive_attr=attrs),
+        TestConfig(Tester.LFR, ml_model, other={"c":"LFR"}, sensitive_attr = attrs), #base_model_bias_mit=Tester.REWEIGHING # setting fotr using pre processing and post processing
+    ] 
+    if baselines==None:
+        return available_base + fyp
+    
+    bases = [config for config in available_base if config.bias_mit in baselines]
+    return bases + fyp
+
+
+def run_all_losses(dataset, epochs, latent_dim, lr, vae_layers, loss_params, results_filename, models = default_models, n_reps = 2, metrics = Metrics.get_all_names()):
+    
+    for s in [["sex","race"],["race"],["sex"]]: 
+        if dataset in [Tester.GERMAN_D, Tester.DEFAULT_D] and "race" in s:
+            continue        
+        
+        mls = list(itertools.chain.from_iterable([
+            ml_configs(model, all_losses, s, epochs, latent_dim, lr, vae_layers, loss_params)
+            for model in models
+        ]))
+        try_test(results_filename, s, dataset, metrics, mls, n_reps)
