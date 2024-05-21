@@ -1,7 +1,4 @@
-import os
-import pandas as pd
 import matplotlib.pyplot as plt
-from matplotlib.cm import get_cmap
 from .file_reader import ResultsReader
 from src.ml_models.FYP_VAE.configs import VAEMaskConfig as vae_config  # has losses
 from src.tester import Tester  # has bias mits
@@ -18,7 +15,6 @@ class ResultsGrapher:
     def __init__(self, reader: ResultsReader) -> None:
         self.reader = reader
         self.cmap = sns.color_palette("flare",60)+sns.color_palette("viridis",50) #get_cmap("tab10")
-        #self.cmap_bl = sns.color_palette("viridis",48) #get_cmap("tab10")
         self.show_legend = True
         self.use_comment_as_label = False
         self.separate_ml_models = True
@@ -69,9 +65,7 @@ class ResultsGrapher:
                 Tester.FAIRMASK: "B:FM",
                 Tester.FAIRBALANCE: "B:FB",
                 Tester.REWEIGHING: "B:RW",
-                Tester.LFR: "B:LFR",
-                Tester.EQODDS: "EqO",
-                Tester.EQODDS_ALT: "EqO_ALT",
+                Tester.LFR: "B:LFR"
             }
             if row[ResultsReader.BIAS_MIT] not in methods:
                 return row[ResultsReader.BIAS_MIT]
@@ -157,7 +151,7 @@ class ResultsGrapher:
                 cur_plt.text(
                     row[x_metric],
                     row[y_metric],
-                    point_label,  # +'|'+ self._get_legend_text(label),
+                    point_label,
                     fontsize=9,  # 12,
                     ha="right",
                     va="bottom",
@@ -180,7 +174,6 @@ class ResultsGrapher:
 
     def _plot_metric_vs_metric_mean_each_loss(self, cur_plt, df, y_metric, x_metric):
         label_col = ResultsReader.OTHER
-        # TODO: make it such that each loss combo is separate))?????/
         points = {}  # [x val][label] -> list of values
         for i, label in enumerate(df[label_col].unique()):
             for index, row in df[df[label_col] == label].iterrows():
@@ -227,8 +220,7 @@ class ResultsGrapher:
                     fmt="none",
                     ecolor=color,
                 )
-                #boxplots.append(y_vals)
-        #plt.boxplot(boxplots)
+               
 
         cur_plt.tick_params(axis='x', labelrotation=45)
         cur_plt.set_xlabel(x_metric)
@@ -237,7 +229,6 @@ class ResultsGrapher:
         
     def _plot_metric_vs_metric_iqr(self, cur_plt, df, y_metric, x_metric):
         label_col = ResultsReader.OTHER
-        # TODO: make it such that each loss combo is separate))?????/
         points_y = {}  # [label] -> list of values
         for i, label in enumerate(df[label_col].unique()):
             for index, row in df[df[label_col] == label].iterrows():
@@ -279,7 +270,6 @@ class ResultsGrapher:
 
     def _plot_metric_vs_metric_mean_each_label(self, cur_plt, df, y_metric, x_metric):
         label_col = ResultsReader.OTHER
-        # TODO: make it such that each loss combo is separate))?????/
         points_y = {}  # [label] -> list of values
         points_x = {}  # [label] -> list of values
         for i, label in enumerate(df[label_col].unique()):
@@ -300,9 +290,7 @@ class ResultsGrapher:
             y_mu, y_std = np.mean(y_vals), np.std(y_vals)
             color = self.get_color(point_label)
 
-            # cur_plt.axhline(np.mean(y_vals) - (np.sqrt(np.var(y_vals))), linestyle='--', color=color, alpha=0.5)
-            # cur_plt.axhline(np.mean(y_vals) + (np.sqrt(np.var(y_vals))), linestyle='--', color=color, alpha=0.5)
-
+          
             cur_plt.errorbar(
                 x_mu,
                 y_mu,

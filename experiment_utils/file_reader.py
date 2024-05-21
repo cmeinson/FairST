@@ -229,13 +229,10 @@ class ResultsReader:
                 print("unable to find base for", index, e)
 
         relative_df = self.relative_metrics_filter(df)
-        # NOTE: this s a hack:
-        #relative_df[OtherColReader.ACC_SF_TO] = (relative_df["accuracy"]+0.3)*(0.1-relative_df["[SF] Statistical Parity Subgroup Fairness"]*2)
         return relative_df
     
     def _get_mean_metrics(self, df):
         mean_df = df.groupby(self.filterable).mean().reset_index()
-        #mean_df = df.groupby([self.DATASET, self.BIAS_MIT, self.ML]).mean().reset_index()
         return mean_df  
             
         

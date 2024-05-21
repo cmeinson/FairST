@@ -12,8 +12,6 @@ from .ml_models import (
 from .data_classes import (
     AdultData,
     CompasData,
-    GermanData,
-    MEPSData,
     DummyData,
     Data,
     DefaultData,
